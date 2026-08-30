@@ -74,6 +74,19 @@ const COUNTRY_RATES: Record<string, number> = {
   CDF: 6716,
 }
 
+type FeeRow = { maxAed: number; fee: number }
+
+const FALLBACK_FEES: FeeRow[] = [
+  { maxAed: 99, fee: 3 },
+  { maxAed: 500, fee: 3 },
+  { maxAed: 1000, fee: 5 },
+  { maxAed: 2000, fee: 7 },
+  { maxAed: 3000, fee: 10 },
+  { maxAed: 5000, fee: 25 },
+  { maxAed: 7000, fee: 35 },
+  { maxAed: 10000, fee: 60 },
+]
+
 export function HomePageClient({
   rates,
   content,
@@ -189,7 +202,7 @@ export function HomePageClient({
     useState<number | "">(1)
 
   const [bifAmount, setBifAmount] =
-    useState<number | "">(1613)
+    useState<number | "">(Math.round(fallbackP2PRate / USD_TO_AED))
 
   // Tracks whether the visitor has edited the AED/BIF example.
   const [aedTouched, setAedTouched] =
@@ -199,10 +212,11 @@ export function HomePageClient({
     p2pRate / USD_TO_AED
 
   // Keep the 1 AED example in sync with the live rate until the user edits it.
+  // Exact conversion (no hidden margin) so the numbers match the displayed rate.
   useEffect(() => {
     if (!aedTouched && bifPerAed > 0) {
       setAedAmount(1)
-      setBifAmount(Math.round(1 * bifPerAed * 0.99))
+      setBifAmount(Math.round(1 * bifPerAed))
     }
   }, [bifPerAed, aedTouched])
 
@@ -219,7 +233,7 @@ export function HomePageClient({
 
     setBifAmount(
       Math.round(
-        value * bifPerAed * 0.99
+        value * bifPerAed
       )
     )
   }
@@ -242,8 +256,7 @@ export function HomePageClient({
     setAedAmount(
       Number(
         (
-          value /
-          (bifPerAed * 0.99)
+          value / bifPerAed
         ).toFixed(2)
       )
     )
@@ -437,6 +450,16 @@ export function HomePageClient({
       p2pRate
     ).toLocaleString()
 
+  // Frais (fee) tiers, charged separately in AED. Falls back to defaults.
+  const feeTiers: FeeRow[] = (
+    Array.isArray(content.fees) ? (content.fees as FeeRow[]) : []
+  )
+    .map((t) => ({ maxAed: Number(t?.maxAed), fee: Number(t?.fee) }))
+    .filter((t) => Number.isFinite(t.maxAed) && Number.isFinite(t.fee))
+    .sort((a, b) => a.maxAed - b.maxAed)
+
+  const fees = feeTiers.length > 0 ? feeTiers : FALLBACK_FEES
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24">
 
@@ -477,13 +500,17 @@ export function HomePageClient({
 
         <div className="flex items-center space-x-3">
 
-          <div className="w-12 h-12 rounded-full border-2 border-red-500 overflow-hidden shadow-md bg-slate-800 flex-shrink-0">
+          <a
+            href="/admin"
+            aria-label="Kwinjira nk'umuyobozi (Admin)"
+            className="w-12 h-12 rounded-full border-2 border-red-500 overflow-hidden shadow-md bg-slate-800 flex-shrink-0 block transition hover:border-red-300"
+          >
             <img
               src="/billy-owner.png"
               alt="Uwurungika"
               className="w-full h-full object-cover object-top"
             />
-          </div>
+          </a>
 
           <div>
             <h1 className="text-lg font-bold text-white tracking-wide">
@@ -748,6 +775,44 @@ export function HomePageClient({
               />
             </div>
 
+          </div>
+
+        </section>
+
+        {/* ===================================================
+            FRAIS / FEES
+        =================================================== */}
+
+        <section className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+
+          <h3 className="text-base md:text-lg font-black text-amber-400 tracking-wide uppercase mb-1">
+            AMAFRAIS (FEES)
+          </h3>
+
+          <p className="text-xs text-slate-400 mb-5 leading-5">
+            Igiciro c&apos;idorari kigaragara ni co nyako. Frais ikatwa ukwayo mu AED
+            ukurikije uko wohereza kwinshi.
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {fees.map((tier, index) => {
+              const previous = index > 0 ? fees[index - 1].maxAed : 0
+              return (
+                <div
+                  key={`${tier.maxAed}-${index}`}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5"
+                >
+                  <p className="text-[11px] text-slate-400">
+                    {previous > 0
+                      ? `${previous.toLocaleString()} - ${tier.maxAed.toLocaleString()} AED`
+                      : `≤ ${tier.maxAed.toLocaleString()} AED`}
+                  </p>
+                  <p className="text-sm font-black text-amber-400">
+                    {tier.fee.toLocaleString()} AED
+                  </p>
+                </div>
+              )
+            })}
           </div>
 
         </section>
