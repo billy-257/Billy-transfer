@@ -25,6 +25,7 @@ export const visits = pgTable("visits", {
   id: serial("id").primaryKey(),
   path: text("path"),
   referrer: text("referrer"),
+  source: text("source"),
   country: text("country"),
   city: text("city"),
   userAgent: text("user_agent"),
@@ -75,6 +76,14 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 export type PushSubscription = typeof pushSubscriptions.$inferSelect
+
+// Presence: last-seen heartbeat per actor. id = "admin" or a client id.
+export const presence = pgTable("presence", {
+  id: text("id").primaryKey(),
+  role: text("role").notNull(), // 'admin' | 'client'
+  lastSeen: timestamp("last_seen", { withTimezone: true }).notNull().defaultNow(),
+})
+export type Presence = typeof presence.$inferSelect
 
 // Single-row (id=1) VAPID keypair for Web Push.
 export const pushConfig = pgTable("push_config", {

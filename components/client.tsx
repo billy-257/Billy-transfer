@@ -1,29 +1,17 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   ArrowRightLeft,
   PhoneCall,
   MessageSquare,
   Share2,
-  Trash2,
-  Send,
-  Check,
-  CheckCheck,
-  X,
   Smartphone,
   Building2,
   ShieldCheck,
   Users,
 } from "lucide-react"
-
-interface Message {
-  id: string
-  text: string
-  sender: "user" | "admin"
-  timestamp: string
-  read: boolean
-}
+import { ClientChat } from "@/components/client-chat"
 
 interface Country {
   name: string
@@ -196,18 +184,32 @@ export function HomePageClient({
    * =========================================================
    */
 
+  // Examples start at 1 AED.
   const [aedAmount, setAedAmount] =
-    useState<number | "">(100)
+    useState<number | "">(1)
 
   const [bifAmount, setBifAmount] =
-    useState<number | "">(1628)
+    useState<number | "">(1613)
+
+  // Tracks whether the visitor has edited the AED/BIF example.
+  const [aedTouched, setAedTouched] =
+    useState(false)
 
   const bifPerAed =
     p2pRate / USD_TO_AED
 
+  // Keep the 1 AED example in sync with the live rate until the user edits it.
+  useEffect(() => {
+    if (!aedTouched && bifPerAed > 0) {
+      setAedAmount(1)
+      setBifAmount(Math.round(1 * bifPerAed * 0.99))
+    }
+  }, [bifPerAed, aedTouched])
+
   function handleAedChange(
     value: number | ""
   ) {
+    setAedTouched(true)
     setAedAmount(value)
 
     if (value === "" || isNaN(value)) {
@@ -225,6 +227,7 @@ export function HomePageClient({
   function handleBifChange(
     value: number | ""
   ) {
+    setAedTouched(true)
     setBifAmount(value)
 
     if (
@@ -252,14 +255,15 @@ export function HomePageClient({
    * =========================================================
    */
 
-  const [inputBifAmount, setInputBifAmount] =
-    useState<number | "">(1168200)
-
-  const [outputAedAmount, setOutputAedAmount] =
-    useState<number | "">(700)
-
   // Keep this as the existing Burundi → Dubai rate.
   const burundiToDubaiRate = 1668.86
+
+  // Example starts at 1 AED (its BIF equivalent).
+  const [inputBifAmount, setInputBifAmount] =
+    useState<number | "">(Math.round(burundiToDubaiRate * 1.01))
+
+  const [outputAedAmount, setOutputAedAmount] =
+    useState<number | "">(1)
 
   function handleInputBifChange(
     value: number | ""
@@ -269,7 +273,7 @@ export function HomePageClient({
     if (
       value === "" ||
       isNaN(value) ||
-      burundiToDubaiRate === 0
+      !burundiToDubaiRate
     ) {
       setOutputAedAmount("")
       return
@@ -292,13 +296,14 @@ export function HomePageClient({
    * =========================================================
    */
 
+  // Every country example starts at 1 AED.
   const [countryAmounts, setCountryAmounts] =
     useState<Record<string, number | "">>({
-      UGX: 10170,
-      TSH: 7026,
-      KSH: 341,
-      RWF: 3935,
-      CDF: 6716,
+      UGX: 1,
+      TSH: 1,
+      KSH: 1,
+      RWF: 1,
+      CDF: 1,
     })
 
   const countries =
@@ -383,129 +388,6 @@ export function HomePageClient({
         "Ntivyashoboye gukopa link."
       )
     }
-  }
-
-  /*
-   * =========================================================
-   * CHAT
-   * =========================================================
-   */
-
-  const [isChatOpen, setIsChatOpen] =
-    useState(false)
-
-  const [messages, setMessages] =
-    useState<Message[]>([
-      {
-        id: "1",
-        text:
-          "Muraho! Twiteguye kubafasha kohereza cyangwa gutora amafaranga yanyu.",
-        sender: "admin",
-        timestamp: "10:00 AM",
-        read: true,
-      },
-    ])
-
-  const [newMessage, setNewMessage] =
-    useState("")
-
-  const [isTyping, setIsTyping] =
-    useState(false)
-
-  const messagesEndRef =
-    useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (isChatOpen) {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: "smooth",
-      })
-    }
-  }, [messages, isChatOpen])
-
-  function handleSendMessage(
-    event: React.FormEvent
-  ) {
-    event.preventDefault()
-
-    if (!newMessage.trim()) {
-      return
-    }
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: newMessage.trim(),
-      sender: "user",
-      timestamp:
-        new Date().toLocaleTimeString(
-          [],
-          {
-            hour: "2-digit",
-            minute: "2-digit",
-          }
-        ),
-      read: false,
-    }
-
-    setMessages((previous) => [
-      ...previous,
-      userMessage,
-    ])
-
-    setNewMessage("")
-    setIsTyping(true)
-
-    window.setTimeout(() => {
-      setIsTyping(false)
-
-      setMessages((previous) =>
-        previous.map(
-          (message) =>
-            message.id ===
-            userMessage.id
-              ? {
-                  ...message,
-                  read: true,
-                }
-              : message
-        )
-      )
-
-      const reply: Message = {
-        id:
-          (
-            Date.now() + 1
-          ).toString(),
-        text:
-          "Murakaza neza! Ubutumwa bwanyu bwakiriwe, turaza kubitaho mu kanya gato.",
-        sender: "admin",
-        timestamp:
-          new Date().toLocaleTimeString(
-            [],
-            {
-              hour: "2-digit",
-              minute: "2-digit",
-            }
-          ),
-        read: true,
-      }
-
-      setMessages((previous) => [
-        ...previous,
-        reply,
-      ])
-    }, 2500)
-  }
-
-  function handleDeleteMessage(
-    id: string
-  ) {
-    setMessages((previous) =>
-      previous.filter(
-        (message) =>
-          message.id !== id
-      )
-    )
   }
 
   /*
@@ -881,7 +763,7 @@ export function HomePageClient({
           </h3>
 
           <p className="text-xs text-slate-400 mb-5">
-            Example: 1,168,200 BIF = 700 AED
+            Example: {Math.round(burundiToDubaiRate * 1.01).toLocaleString()} BIF = 1 AED
           </p>
 
           <div className="grid md:grid-cols-2 gap-4">
@@ -1115,161 +997,10 @@ export function HomePageClient({
       </main>
 
       {/* =====================================================
-          FLOATING CHAT
+          FLOATING CHAT (real, connected to admin inbox)
       ===================================================== */}
 
-      <div className="fixed bottom-6 right-6 z-50">
-
-        {!isChatOpen ? (
-          <button
-            onClick={() =>
-              setIsChatOpen(true)
-            }
-            className="bg-red-600 hover:bg-red-500 text-white font-black px-6 py-4 rounded-full shadow-2xl flex items-center space-x-3 transition"
-          >
-            <MessageSquare className="w-6 h-6 animate-bounce" />
-
-            <span className="text-sm">
-              Kurungika Message
-            </span>
-          </button>
-        ) : (
-          <div className="bg-slate-900 border border-slate-700 w-80 md:w-96 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[480px]">
-
-            <div className="bg-slate-950 px-4 py-3 border-b border-slate-800 flex justify-between items-center">
-
-              <div className="flex items-center space-x-2">
-
-                <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-xs">
-                  BH
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold text-white">
-                    Billy Happy Transfer
-                  </h4>
-
-                  <p className="text-[10px] text-green-400">
-                    Online
-                  </p>
-                </div>
-
-              </div>
-
-              <button
-                onClick={() =>
-                  setIsChatOpen(false)
-                }
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-            </div>
-
-            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-900/50 text-xs">
-
-              {messages.map(
-                (message) => (
-                  <div
-                    key={message.id}
-                    className={`flex flex-col ${
-                      message.sender === "user"
-                        ? "items-end"
-                        : "items-start"
-                    }`}
-                  >
-
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-3 py-2 relative group ${
-                        message.sender === "user"
-                          ? "bg-red-600 text-white"
-                          : "bg-slate-800 text-slate-100 border border-slate-700"
-                      }`}
-                    >
-
-                      <p>
-                        {message.text}
-                      </p>
-
-                      <div className="flex justify-end space-x-1 mt-1 text-[9px] opacity-75">
-
-                        <span>
-                          {
-                            message.timestamp
-                          }
-                        </span>
-
-                        {message.sender ===
-                          "user" && (
-                          <span>
-                            {message.read ? (
-                              <CheckCheck className="w-3 h-3 text-blue-300 inline" />
-                            ) : (
-                              <Check className="w-3 h-3 inline" />
-                            )}
-                          </span>
-                        )}
-
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          handleDeleteMessage(
-                            message.id
-                          )
-                        }
-                        className="absolute -top-2 -right-2 bg-slate-950 border border-slate-700 text-slate-400 hover:text-red-400 p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-
-                    </div>
-
-                  </div>
-                )
-              )}
-
-              {isTyping && (
-                <div className="text-slate-400 text-xs italic">
-                  Billy is typing...
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-
-            </div>
-
-            <form
-              onSubmit={handleSendMessage}
-              className="p-3 bg-slate-950 border-t border-slate-800 flex space-x-2"
-            >
-
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(event) =>
-                  setNewMessage(
-                    event.target.value
-                  )
-                }
-                placeholder="Andika ubutumwa..."
-                className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-              />
-
-              <button
-                type="submit"
-                className="bg-red-600 text-white p-2.5 rounded-xl"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-
-            </form>
-
-          </div>
-        )}
-
-      </div>
+      <ClientChat agentName={content.agentName || "Billy"} />
 
     </div>
   )
