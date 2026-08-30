@@ -29,7 +29,9 @@ export async function createSession() {
   store.set(COOKIE, value, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
+    // "none" is required so the session cookie is stored/sent inside the
+    // v0 preview iframe (cross-site context). Works over HTTPS in prod too.
+    sameSite: "none",
     path: "/",
     maxAge: MAX_AGE,
   })
