@@ -1,0 +1,52 @@
+import { getRateSettings } from "@/lib/rates"
+import { getSiteContent } from "@/lib/content"
+import { SiteHeader } from "@/components/site-header"
+import { MarqueeBanner } from "@/components/marquee-banner"
+import { ClientInbox } from "@/components/client-inbox"
+import { MoneyExpressCalculator } from "@/components/money-express-calculator"
+import { HeroSection } from "@/components/hero-section"
+import { PaymentMethods } from "@/components/payment-methods"
+import { OtherCountries } from "@/components/other-countries"
+import { WhatsappCta } from "@/components/whatsapp-cta"
+import { ContactFooter } from "@/components/contact-footer"
+
+export const dynamic = "force-dynamic"
+
+export default async function HomePage() {
+  const [rates, content] = await Promise.all([getRateSettings(), getSiteContent()])
+
+  return (
+    <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
+      <MarqueeBanner items={content.marquee} />
+      <SiteHeader
+        brandName={content.brandName}
+        tagline={content.tagline}
+        phone={content.phone}
+        callLabel={content.callLabel}
+      />
+
+      <main className="mx-auto mt-6 max-w-4xl space-y-8 px-4">
+        <ClientInbox agentName={content.agentName} />
+        <MoneyExpressCalculator
+          usdMobileRate={rates.usdMobileRate}
+          usdBankRate={rates.usdBankRate}
+          fees={content.fees}
+        />
+        <HeroSection badge={content.heroBadge} title={content.heroTitle} subtitle={content.heroSubtitle} />
+        <PaymentMethods mobile={content.burundiMobile} banks={content.burundiBanks} />
+        <OtherCountries label={content.otherCountriesLabel} countries={content.countries} />
+        <WhatsappCta whatsappNumber={content.whatsappNumber} />
+        <ContactFooter
+          title={content.footerTitle}
+          note={content.footerNote}
+          phone={content.phone}
+          callLabel={content.callLabel}
+          whatsappNumber={content.whatsappNumber}
+          whatsappLabel={content.whatsappLabel}
+          whatsappGroupUrl={content.whatsappGroupUrl}
+          groupLabel={content.groupLabel}
+        />
+      </main>
+    </div>
+  )
+}
