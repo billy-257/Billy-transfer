@@ -1,4 +1,4 @@
-Import { getRateSettings } from "@/lib/rates"
+import { getRateSettings } from "@/lib/rates"
 import { getSiteContent } from "@/lib/content"
 import { SiteHeader } from "@/components/site-header"
 import { MarqueeBanner } from "@/components/marquee-banner"
@@ -27,11 +27,29 @@ export default async function HomePage() {
 
       <main className="mx-auto mt-6 max-w-4xl space-y-8 px-4">
         <ClientInbox agentName={content.agentName} />
+
+        {/* First Calculator: AED to Burundi */}
         <MoneyExpressCalculator
           usdMobileRate={rates.usdMobileRate}
           usdBankRate={rates.usdBankRate}
           fees={content.fees}
         />
+
+        {/* Second Calculator Section: Burundi to Dubai */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div className="mb-4">
+            <h3 className="text-base md:text-lg font-black text-green-400 tracking-wide uppercase">
+              USHAKA GUTORA AMAFERANGA AVA MU BURUNDI AZA DUBAI
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">Andika amafaranga yo mu Burundi (BIF) urebe uko ungana hano Dubai (AED). (1,168,200 BIF = 700 AED)</p>
+          </div>
+          <MoneyExpressCalculator
+            usdMobileRate={rates.usdMobileRate}
+            usdBankRate={rates.usdBankRate}
+            fees={content.fees}
+          />
+        </div>
+
         <HeroSection badge={content.heroBadge} title={content.heroTitle} subtitle={content.heroSubtitle} />
         <PaymentMethods mobile={content.burundiMobile} banks={content.burundiBanks} />
         <OtherCountries label={content.otherCountriesLabel} countries={content.countries} />
@@ -49,4 +67,4 @@ export default async function HomePage() {
       </main>
     </div>
   )
-} This is it so i need you to update according to what i told you that i want to change
+}
