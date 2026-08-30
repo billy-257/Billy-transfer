@@ -4,7 +4,6 @@ import { SiteHeader } from "@/components/site-header"
 import { MarqueeBanner } from "@/components/marquee-banner"
 import { ClientInbox } from "@/components/client-inbox"
 import { MoneyExpressCalculator } from "@/components/money-express-calculator"
-import { BurundiToDubaiCalculator } from "@/components/burundi-to-dubai-calculator"
 import { HeroSection } from "@/components/hero-section"
 import { PaymentMethods } from "@/components/payment-methods"
 import { OtherCountries } from "@/components/other-countries"
@@ -27,7 +26,7 @@ export default async function HomePage() {
       />
 
       <main className="mx-auto mt-6 max-w-4xl space-y-8 px-4">
-        {/* Collapsible Messaging Panel with live typing, online indicators, read receipts, and delete */}
+        {/* Collapsible Messaging Panel */}
         <ClientInbox agentName={content.agentName} />
 
         {/* First Calculator: AED to Burundi */}
@@ -39,11 +38,24 @@ export default async function HomePage() {
         />
 
         {/* Second Calculator: Burundi to Dubai */}
-        <BurundiToDubaiCalculator />
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div className="mb-4">
+            <h3 className="text-base md:text-lg font-black text-green-400 tracking-wide uppercase">
+              USHAKA GUTORA AMAFERANGA AVA MU BURUNDI AZA DUBAI
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">Andika amafaranga yo mu Burundi (BIF) urebe uko ungana hano Dubai (AED). (1,168,200 BIF = 700 AED)</p>
+          </div>
+          <MoneyExpressCalculator
+            title=""
+            usdMobileRate={rates.usdMobileRate}
+            usdBankRate={rates.usdBankRate}
+            fees={content.fees}
+          />
+        </div>
 
         <HeroSection badge={content.heroBadge} title={content.heroTitle} subtitle={content.heroSubtitle} />
 
-        {/* Dedicated Country-Specific Calculator Panels */}
+        {/* Country-Specific Calculator Panels */}
         <OtherCountries label={content.otherCountriesLabel} countries={content.countries} />
 
         <PaymentMethods mobile={content.burundiMobile} banks={content.burundiBanks} />
