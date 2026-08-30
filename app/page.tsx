@@ -1,6 +1,6 @@
 import { getRateSettings } from "@/lib/rates"
 import { getSiteContent } from "@/lib/content"
-import { HomePageClient } from "@/components/home-page-client"
+import { HomePageClient } from "@/components/client"
 
 export const dynamic = "force-dynamic"
 
