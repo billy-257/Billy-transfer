@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, ArrowLeft, Bell, BellRing } from "lucide-react"
+import { Send, ArrowLeft, Bell, BellRing, Trash2, Phone } from "lucide-react"
 import { enablePush, pushSupported } from "@/lib/push-client"
 
 type Convo = {
@@ -13,6 +13,7 @@ type Convo = {
   unreadForAdmin: number
   lastBody: string | null
   total: number
+  online?: boolean
 }
 type Msg = { id: number; sender: "client" | "admin"; body: string; createdAt: string }
 
@@ -39,6 +40,7 @@ export function InboxRoom() {
 
   const loadConvos = useCallback(async () => {
     try {
+      // Fetching also registers the admin as online (server heartbeat).
       const res = await fetch("/api/admin/inbox")
       const data = await res.json()
       if (data.ok) setConvos(data.conversations)
@@ -60,6 +62,7 @@ export function InboxRoom() {
   useEffect(() => {
     if (typeof Notification !== "undefined" && Notification.permission === "granted") setNotifState("on")
     loadConvos()
+    // Poll every 4s: keeps admin online, refreshes list + open thread.
     const t = setInterval(() => {
       loadConvos()
       if (activeRef.current) loadThread(activeRef.current)
@@ -95,9 +98,30 @@ export function InboxRoom() {
     }
   }
 
+  async function deleteMessage(id: number) {
+    if (!activeId) return
+    setThread((prev) => prev.filter((m) => m.id !== id))
+    try {
+      await fetch(`/api/admin/inbox?conversationId=${activeId}&messageId=${id}`, { method: "DELETE" })
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function deleteConversation(id: number) {
+    if (!confirm("Ushaka gusiba iyi ntumwa yose? Ntushobora kuyisubiza.")) return
+    setConvos((prev) => prev.filter((c) => c.id !== id))
+    if (activeId === id) setActiveId(null)
+    try {
+      await fetch(`/api/admin/inbox?conversationId=${id}`, { method: "DELETE" })
+    } catch {
+      /* ignore */
+    }
+  }
+
   async function enableAdminNotif() {
-    const ok = await enablePush("admin")
-    setNotifState(ok ? "on" : "off")
+    const res = await enablePush("admin")
+    setNotifState(res.ok ? "on" : "off")
   }
 
   const active = convos.find((c) => c.id === activeId)
@@ -126,14 +150,19 @@ export function InboxRoom() {
             <p className="py-10 text-center text-sm text-slate-500">Nta butumwa buraboneka.</p>
           ) : (
             convos.map((c) => (
-              <button
+              <div
                 key={c.id}
-                onClick={() => setActiveId(c.id)}
-                className="flex w-full items-center justify-between border-b border-slate-800/60 px-4 py-3 text-left transition hover:bg-slate-900"
+                className="group flex items-center justify-between border-b border-slate-800/60 px-4 py-3 transition hover:bg-slate-900"
               >
-                <div className="min-w-0">
+                <button onClick={() => setActiveId(c.id)} className="min-w-0 flex-1 text-left">
                   <p className="flex items-center gap-2 text-sm font-bold text-white">
-                    {c.name || "Umukiriya"}
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className={`h-2 w-2 rounded-full ${c.online ? "bg-emerald-400" : "bg-slate-600"}`}
+                        aria-hidden
+                      />
+                      {c.name || "Umukiriya"}
+                    </span>
                     {c.phone ? <span className="text-xs font-normal text-slate-400">{c.phone}</span> : null}
                     {c.unreadForAdmin > 0 ? (
                       <span className="rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-slate-950">
@@ -141,28 +170,92 @@ export function InboxRoom() {
                       </span>
                     ) : null}
                   </p>
-                  <p className="truncate text-xs text-slate-400">{c.lastBody}</p>
+                  <p className="truncate text-xs text-slate-400">
+                    {c.online ? <span className="text-emerald-400">ari kumurongo · </span> : null}
+                    {c.lastBody}
+                  </p>
+                </button>
+                <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+                  {c.phone ? (
+                    <a
+                      href={`https://wa.me/${c.phone.replace(/[^0-9]/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded-full p-1.5 text-emerald-400 hover:bg-emerald-500/10"
+                      aria-label="WhatsApp"
+                    >
+                      <Phone className="h-4 w-4" />
+                    </a>
+                  ) : null}
+                  <span className="text-xs text-slate-500">{timeAgo(c.lastMessageAt)}</span>
+                  <button
+                    onClick={() => deleteConversation(c.id)}
+                    className="rounded-full p-1.5 text-slate-500 opacity-0 transition hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                    aria-label="Siba intumwa"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <span className="ml-2 flex-shrink-0 text-xs text-slate-500">{timeAgo(c.lastMessageAt)}</span>
-              </button>
+              </div>
             ))
           )}
         </div>
       ) : (
         <div className="flex h-[28rem] flex-col">
-          <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-2.5">
-            <button onClick={() => setActiveId(null)} className="text-slate-400 hover:text-white">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <div>
-              <p className="text-sm font-bold text-white">{active?.name || "Umukiriya"}</p>
-              {active?.phone ? <p className="text-xs text-slate-400">{active.phone}</p> : null}
+          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <button onClick={() => setActiveId(null)} className="text-slate-400 hover:text-white">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <div>
+                <p className="flex items-center gap-1.5 text-sm font-bold text-white">
+                  <span
+                    className={`h-2 w-2 rounded-full ${active?.online ? "bg-emerald-400" : "bg-slate-600"}`}
+                    aria-hidden
+                  />
+                  {active?.name || "Umukiriya"}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {active?.online ? "ari kumurongo" : "ntari kumurongo"}
+                  {active?.phone ? ` · ${active.phone}` : ""}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {active?.phone ? (
+                <a
+                  href={`https://wa.me/${active.phone.replace(/[^0-9]/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full p-2 text-emerald-400 hover:bg-emerald-500/10"
+                  aria-label="WhatsApp"
+                >
+                  <Phone className="h-4 w-4" />
+                </a>
+              ) : null}
+              <button
+                onClick={() => deleteConversation(active!.id)}
+                className="rounded-full p-2 text-slate-500 hover:bg-red-500/10 hover:text-red-400"
+                aria-label="Siba intumwa"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
             {thread.map((m) => (
-              <div key={m.id} className={`flex ${m.sender === "admin" ? "justify-end" : "justify-start"}`}>
+              <div key={m.id} className={`group flex ${m.sender === "admin" ? "justify-end" : "justify-start"}`}>
+                {m.sender === "admin" ? (
+                  <button
+                    onClick={() => deleteMessage(m.id)}
+                    className="mr-1 self-center rounded-full p-1 text-slate-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                    aria-label="Siba ubutumwa"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
                     m.sender === "admin"
@@ -172,6 +265,15 @@ export function InboxRoom() {
                 >
                   {m.body}
                 </div>
+                {m.sender === "client" ? (
+                  <button
+                    onClick={() => deleteMessage(m.id)}
+                    className="ml-1 self-center rounded-full p-1 text-slate-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+                    aria-label="Siba ubutumwa"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
               </div>
             ))}
           </div>
