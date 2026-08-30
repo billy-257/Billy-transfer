@@ -3,13 +3,17 @@ import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { conversations } from "@/lib/db/schema"
 import { isAuthenticated } from "@/lib/admin-auth"
-import { listConversations, getThread, addMessage, markRead } from "@/lib/inbox"
+import { listConversations, getThread, addMessage, markRead, deleteMessage, deleteConversation } from "@/lib/inbox"
+import { getOnlineClientIds, heartbeat } from "@/lib/presence"
 import { sendPush } from "@/lib/push"
 
 export const runtime = "nodejs"
 
 export async function GET(req: Request) {
   if (!(await isAuthenticated())) return NextResponse.json({ ok: false }, { status: 401 })
+
+  // Opening the panel counts as the admin being online.
+  await heartbeat("admin", "admin")
 
   const { searchParams } = new URL(req.url)
   const conversationId = searchParams.get("conversationId")
@@ -21,8 +25,26 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, messages })
   }
 
-  const convos = await listConversations()
-  return NextResponse.json({ ok: true, conversations: convos })
+  const [convos, onlineIds] = await Promise.all([listConversations(), getOnlineClientIds()])
+  const online = new Set(onlineIds)
+  const withOnline = convos.map((c) => ({ ...c, online: online.has(c.clientId) }))
+  return NextResponse.json({ ok: true, conversations: withOnline })
+}
+
+// Admin deletes a message or a whole conversation.
+export async function DELETE(req: Request) {
+  if (!(await isAuthenticated())) return NextResponse.json({ ok: false }, { status: 401 })
+  const { searchParams } = new URL(req.url)
+  const conversationId = Number(searchParams.get("conversationId"))
+  const messageId = searchParams.get("messageId")
+  if (!conversationId) return NextResponse.json({ ok: false }, { status: 400 })
+
+  if (messageId) {
+    await deleteMessage(conversationId, Number(messageId))
+  } else {
+    await deleteConversation(conversationId)
+  }
+  return NextResponse.json({ ok: true })
 }
 
 // Admin replies to a conversation.

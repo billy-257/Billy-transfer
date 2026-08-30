@@ -79,6 +79,19 @@ export async function listConversations(): Promise<ConversationWithLast[]> {
   return result
 }
 
+// Delete a single message from a conversation.
+export async function deleteMessage(conversationId: number, messageId: number) {
+  await db
+    .delete(chatMessages)
+    .where(and(eq(chatMessages.id, messageId), eq(chatMessages.conversationId, conversationId)))
+}
+
+// Delete an entire conversation and all its messages.
+export async function deleteConversation(conversationId: number) {
+  await db.delete(chatMessages).where(eq(chatMessages.conversationId, conversationId))
+  await db.delete(conversations).where(eq(conversations.id, conversationId))
+}
+
 export async function getConversationByClientId(clientId: string) {
   const rows = await db.select().from(conversations).where(eq(conversations.clientId, clientId)).limit(1)
   return rows[0] ?? null
