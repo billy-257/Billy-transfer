@@ -5,9 +5,9 @@ import type { SiteContent } from "@/lib/content-types"
 export const rateSettings = pgTable("rate_settings", {
   id: integer("id").primaryKey().default(1),
   aedRates: jsonb("aed_rates").$type<Record<string, number>>().notNull(),
-  usdMobileRate: numeric("usd_mobile_rate", { mode: "number" }).notNull(),
-  usdBankRate: numeric("usd_bank_rate", { mode: "number" }).notNull(),
-  margin: numeric("margin", { mode: "number" }).notNull(),
+  usdMobileRate: numeric("usd_mobile_rate").notNull(),
+  usdBankRate: numeric("usd_bank_rate").notNull(),
+  margin: numeric("margin").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 export type RateSettings = typeof rateSettings.$inferSelect

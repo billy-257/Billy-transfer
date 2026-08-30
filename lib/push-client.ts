@@ -13,30 +13,36 @@ export function pushSupported() {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window
 }
 
+export type EnablePushResult = { ok: boolean; error?: string }
+
 // Subscribes the browser to push and registers it on the server.
-export async function enablePush(role: "admin" | "client", clientId?: string): Promise<boolean> {
-  if (!pushSupported()) return false
+export async function enablePush(role: "admin" | "client", clientId?: string): Promise<EnablePushResult> {
+  if (!pushSupported()) return { ok: false, error: "Iyi telefone/browser ntiyemera integuza." }
 
   const permission = await Notification.requestPermission()
-  if (permission !== "granted") return false
+  if (permission !== "granted") return { ok: false, error: "Ntiwemeye integuza." }
 
-  const reg = await navigator.serviceWorker.ready
-  const res = await fetch("/api/push/subscribe")
-  const { publicKey } = await res.json()
-  if (!publicKey) return false
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const res = await fetch("/api/push/subscribe")
+    const { publicKey } = await res.json()
+    if (!publicKey) return { ok: false, error: "Nta rufunguzo rwaboneka." }
 
-  let sub = await reg.pushManager.getSubscription()
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    let sub = await reg.pushManager.getSubscription()
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      })
+    }
+
+    const save = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ role, clientId, subscription: sub.toJSON() }),
     })
+    return { ok: save.ok, error: save.ok ? undefined : "Ntibishoboye kubikwa." }
+  } catch (err) {
+    return { ok: false, error: (err as Error).message }
   }
-
-  const save = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ role, clientId, subscription: sub.toJSON() }),
-  })
-  return save.ok
 }

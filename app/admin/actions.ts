@@ -36,13 +36,16 @@ export async function saveRates(_prev: SaveState, formData: FormData): Promise<S
       return { error: "Injiza ibiciro vy'ukuri." }
     }
     const margin = Math.max(0, Math.min(1, 1 - marginPercent / 100))
+    const values = {
+      usdMobileRate: String(usdMobileRate),
+      usdBankRate: String(usdBankRate),
+      margin: String(margin),
+      updatedAt: new Date(),
+    }
     await db
       .insert(rateSettings)
-      .values({ id: 1, aedRates: {}, usdMobileRate, usdBankRate, margin, updatedAt: new Date() })
-      .onConflictDoUpdate({
-        target: rateSettings.id,
-        set: { usdMobileRate, usdBankRate, margin, updatedAt: new Date() },
-      })
+      .values({ id: 1, aedRates: {}, ...values })
+      .onConflictDoUpdate({ target: rateSettings.id, set: values })
     revalidatePath("/")
     revalidatePath("/admin")
     return { success: true }
