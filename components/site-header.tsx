@@ -1,70 +1,47 @@
-import { getRateSettings } from "@/lib/rates"
-import { getSiteContent } from "@/lib/content"
-import { SiteHeader } from "@/components/site-header"
-import { MarqueeBanner } from "@/components/marquee-banner"
-import { ClientInbox } from "@/components/client-inbox"
-import { MoneyExpressCalculator } from "@/components/money-express-calculator"
-import { HeroSection } from "@/components/hero-section"
-import { PaymentMethods } from "@/components/payment-methods"
-import { OtherCountries } from "@/components/other-countries"
-import { WhatsappCta } from "@/components/whatsapp-cta"
-import { ContactFooter } from "@/components/contact-footer"
+import Image from "next/image"
+import Link from "next/link"
+import { PhoneCall } from "lucide-react"
 
-export const dynamic = "force-dynamic"
+type Props = {
+  brandName: string
+  tagline: string
+  phone: string
+  callLabel: string
+}
 
-export default async function HomePage() {
-  const [rates, content] = await Promise.all([getRateSettings(), getSiteContent()])
-
+export function SiteHeader({ brandName, tagline, phone, callLabel }: Props) {
   return (
-    <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
-      <MarqueeBanner items={content.marquee} />
-      <SiteHeader
-        brandName={content.brandName}
-        tagline={content.tagline}
-        phone={content.phone}
-        callLabel={content.callLabel}
-      />
-
-      <main className="mx-auto mt-6 max-w-4xl space-y-8 px-4">
-        <ClientInbox agentName={content.agentName} />
-
-        {/* First Calculator: AED to Burundi */}
-        <MoneyExpressCalculator
-          usdMobileRate={rates.usdMobileRate}
-          usdBankRate={rates.usdBankRate}
-          fees={content.fees}
-        />
-
-        {/* Second Calculator Section: Burundi to Dubai */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <div className="mb-4">
-            <h3 className="text-base md:text-lg font-black text-green-400 tracking-wide uppercase">
-              USHAKA GUTORA AMAFERANGA AVA MU BURUNDI AZA DUBAI
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">Andika amafaranga yo mu Burundi (BIF) urebe uko ungana hano Dubai (AED). (1,168,200 BIF = 700 AED)</p>
-          </div>
-          <MoneyExpressCalculator
-            usdMobileRate={rates.usdMobileRate}
-            usdBankRate={rates.usdBankRate}
-            fees={content.fees}
+    <header className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 border-b border-slate-800 px-4 py-4">
+      <div className="flex items-center gap-3">
+        <Link
+          href="/admin"
+          aria-label="Kwinjira nk'umuyobozi (Admin)"
+          className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-500 bg-slate-800 transition hover:border-emerald-400"
+        >
+          <Image
+            src="/1000107113.jpg"
+            alt={brandName}
+            width={48}
+            height={48}
+            className="h-full w-full object-cover object-top"
+            priority
           />
+        </Link>
+        <div>
+          <h1 className="text-lg font-bold tracking-wide text-white">{brandName}</h1>
+          <p className="text-xs text-slate-400">{tagline}</p>
         </div>
-
-        <HeroSection badge={content.heroBadge} title={content.heroTitle} subtitle={content.heroSubtitle} />
-        <PaymentMethods mobile={content.burundiMobile} banks={content.burundiBanks} />
-        <OtherCountries label={content.otherCountriesLabel} countries={content.countries} />
-        <WhatsappCta whatsappNumber={content.whatsappNumber} />
-        <ContactFooter
-          title={content.footerTitle}
-          note={content.footerNote}
-          phone={content.phone}
-          callLabel={content.callLabel}
-          whatsappNumber={content.whatsappNumber}
-          whatsappLabel={content.whatsappLabel}
-          whatsappGroupUrl={content.whatsappGroupUrl}
-          groupLabel={content.groupLabel}
-        />
-      </main>
-    </div>
+      </div>
+      <a
+        href={`tel:${phone}`}
+        className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 transition hover:border-slate-500"
+      >
+        <PhoneCall className="h-4 w-4 text-emerald-400" />
+        <div className="text-left">
+          <p className="text-[10px] text-slate-400">{callLabel}</p>
+          <p className="text-sm font-bold text-white">{phone}</p>
+        </div>
+      </a>
+    </header>
   )
 }
