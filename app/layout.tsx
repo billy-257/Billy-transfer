@@ -10,7 +10,7 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono"
 export const metadata: Metadata = {
   title: "RUNGIKA NA BILLY - Kurungika Amafaranga",
   description:
-    "Rungika amafaranga uva Dubai (AED/USD) uja mu Burundi na mu bindi bihugu vya Afrika ku buryo bwihuse kandi bwizewe.",
+    "Rungika amafaranga ava Dubai (AED/USD) aja mu Burundi no mu bindi bihugu vya Afrika mu buryo bwihuse kandi bwizewe.",
   manifest: "/manifest.json",
   metadataBase: new URL("https://billytransfer.com"),
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "RUNGIKA NA BILLY" },
