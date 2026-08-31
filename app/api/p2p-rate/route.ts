@@ -2,6 +2,14 @@ import { NextResponse } from "next/server"
 
 export const dynamic = "force-dynamic"
 
+// Displayed USD→BIF rate must stay within this band, never above the max.
+const RATE_MIN = 5978
+const RATE_MAX = 5982
+
+function clampRate(value: number) {
+  return Math.min(RATE_MAX, Math.max(RATE_MIN, value))
+}
+
 interface BinanceAd {
   adv?: {
     price?: string
@@ -92,8 +100,8 @@ export async function GET() {
       ) / selected.length
 
     return NextResponse.json({
-      rate: Math.round(
-        average
+      rate: clampRate(
+        Math.round(average)
       ),
       live: true,
       source: "Binance P2P",
