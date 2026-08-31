@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
-import { getOrCreateConversation, addMessage, getNewClientMessages, markRead } from "@/lib/inbox"
+import { getOrCreateConversation, addMessage, getNewClientMessages, markRead, getThread } from "@/lib/inbox"
 import { sendPush } from "@/lib/push"
+import { generateKirundiReply } from "@/lib/ai-reply"
 
 export const runtime = "nodejs"
 
@@ -47,7 +48,19 @@ export async function POST(req: Request) {
       },
     ).catch(() => {})
 
-    return NextResponse.json({ ok: true, message: msg })
+    // AI assistant auto-replies in Kirundi with the live rate + a follow-up question.
+    let aiMessage = null
+    try {
+      const thread = await getThread(convo.id)
+      const reply = await generateKirundiReply(thread, convo.name)
+      if (reply) {
+        aiMessage = await addMessage(convo.id, "admin", reply)
+      }
+    } catch {
+      /* AI reply is best-effort; Billy can still reply manually. */
+    }
+
+    return NextResponse.json({ ok: true, message: msg, aiMessage })
   } catch {
     return NextResponse.json({ ok: false, error: "Habaye ikibazo" }, { status: 500 })
   }
