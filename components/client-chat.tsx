@@ -121,10 +121,19 @@ export function ClientChat({ agentName = "Billy" }: { agentName?: string }) {
       })
       const data = await res.json()
       if (data.ok && data.message) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === optimistic.id ? data.message : m)),
+        setMessages((prev) => {
+          const next = prev.map((m) => (m.id === optimistic.id ? data.message : m))
+          // Append the AI reply right away if the server returned one.
+          if (data.aiMessage && !next.some((m: Msg) => m.id === data.aiMessage.id)) {
+            next.push(data.aiMessage)
+          }
+          return next
+        })
+        lastIdRef.current = Math.max(
+          lastIdRef.current,
+          data.message.id,
+          data.aiMessage?.id ?? 0,
         )
-        lastIdRef.current = Math.max(lastIdRef.current, data.message.id)
       }
     } catch {
       /* ignore */
@@ -250,6 +259,17 @@ export function ClientChat({ agentName = "Billy" }: { agentName?: string }) {
                     </div>
                   ))
                 )}
+                {sending ? (
+                  <div className="flex items-start">
+                    <div className="rounded-2xl rounded-bl-sm border border-slate-700 bg-slate-800 px-3 py-2 text-slate-400">
+                      <span className="inline-flex gap-1">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {/* Composer */}
