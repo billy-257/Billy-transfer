@@ -14,7 +14,7 @@ export function SiteHeader({ brandName, tagline, phone, callLabel }: Props) {
     <header className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 border-b border-slate-800 px-4 py-4">
       <div className="flex items-center gap-3">
         <Link
-          href="/admin"
+          href="/admin/reauth"
           aria-label="Kwinjira nk'umuyobozi (Admin)"
           className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-500 bg-slate-800 transition hover:border-emerald-400"
         >
