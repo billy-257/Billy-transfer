@@ -501,7 +501,7 @@ export function HomePageClient({
         <div className="flex items-center space-x-3">
 
           <a
-            href="/admin/reauth"
+            href="/admin"
             aria-label="Kwinjira nk'umuyobozi (Admin)"
             className="w-12 h-12 rounded-full border-2 border-red-500 overflow-hidden shadow-md bg-slate-800 flex-shrink-0 block transition hover:border-red-300"
           >
