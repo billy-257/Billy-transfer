@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic"
 
 // Displayed USD→BIF rate must stay within this band, never above the max.
 const RATE_MIN = 5975
-const RATE_MAX = 5980
+const RATE_MAX = 5975
 
 function clampRate(value: number) {
   return Math.min(RATE_MAX, Math.max(RATE_MIN, value))
