@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 
 // Displayed USD→BIF rate must stay within this band, never above the max.
-const RATE_MIN = 6000
+const RATE_MIN = 6005
 const RATE_MAX = 6005
 
 function clampRate(value: number) {
