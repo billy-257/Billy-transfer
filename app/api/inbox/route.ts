@@ -55,16 +55,10 @@ export async function POST(req: Request) {
     let aiMessage = null
     try {
       const thread = await getThread(convo.id)
-      let reply: string | null = null
-      try {
-        reply = await Promise.race([
-          generateKirundiReply(thread, convo.name),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 20_000)),
-        ])
-      } catch (err) {
-        console.log("[v0] AI reply error:", (err as Error).message)
-      }
-      if (!reply) reply = await fallbackKirundiReply(convo.name)
+      // The model replies to the whole conversation (real customer care).
+      let reply = await generateKirundiReply(thread, convo.name)
+      // Only if the model is unavailable: answer from keywords with the live numbers.
+      if (!reply) reply = await fallbackKirundiReply(convo.name, text, thread)
       if (reply) {
         aiMessage = await addMessage(convo.id, "admin", reply)
       }
