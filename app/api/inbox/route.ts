@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server"
 import { getOrCreateConversation, addMessage, getNewClientMessages, markRead, getThread } from "@/lib/inbox"
 import { sendPush } from "@/lib/push"
-import { generateKirundiReply } from "@/lib/ai-reply"
+import { generateKirundiReply, fallbackKirundiReply } from "@/lib/ai-reply"
 
 export const runtime = "nodejs"
+// The AI reply can take several seconds; don't let the deployed function time out.
+export const maxDuration = 60
 
 // Simple per-process rate limit for message sends.
 const hits = new Map<string, { count: number; ts: number }>()
@@ -49,15 +51,25 @@ export async function POST(req: Request) {
     ).catch(() => {})
 
     // AI assistant auto-replies in Kirundi with the live rate + a follow-up question.
+    // If the model fails or is slow, a Kirundi fallback with the live rate is sent instead.
     let aiMessage = null
     try {
       const thread = await getThread(convo.id)
-      const reply = await generateKirundiReply(thread, convo.name)
+      let reply: string | null = null
+      try {
+        reply = await Promise.race([
+          generateKirundiReply(thread, convo.name),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 20_000)),
+        ])
+      } catch (err) {
+        console.log("[v0] AI reply error:", (err as Error).message)
+      }
+      if (!reply) reply = await fallbackKirundiReply(convo.name)
       if (reply) {
         aiMessage = await addMessage(convo.id, "admin", reply)
       }
-    } catch {
-      /* AI reply is best-effort; Billy can still reply manually. */
+    } catch (err) {
+      console.log("[v0] auto-reply failed:", (err as Error).message)
     }
 
     return NextResponse.json({ ok: true, message: msg, aiMessage })

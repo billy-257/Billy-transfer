@@ -53,6 +53,20 @@ UBURYO BWO KWISHURA:
 ${clientName ? `Izina ry'umukiriya: ${clientName}.` : ""}`
 }
 
+// Static Kirundi reply with the live rate, used when the AI model is unavailable.
+export async function fallbackKirundiReply(clientName?: string | null): Promise<string> {
+  let rateLine = ""
+  try {
+    const rates = await getRateSettings()
+    const usdMobile = Math.round(rates.usdMobileRate)
+    const aedMobile = Math.round(rates.usdMobileRate / USD_TO_AED)
+    rateLine = ` Igiciro c'uyu musi: 1 USD = ${usdMobile} BIF (1 AED = ${aedMobile} BIF); frais ikatwa ukwayo mu AED.`
+  } catch {
+    /* rate unavailable; keep the greeting only */
+  }
+  return `Muraho${clientName ? ` ${clientName}` : ""}! Twakiriye ubutumwa bwanyu.${rateLine} Turaza kubishura vuba kuri WhatsApp. Mwumva gute serivisi zacu?`
+}
+
 // Generates a Kirundi assistant reply from the recent thread. Returns null on failure.
 export async function generateKirundiReply(
   thread: ChatMessage[],
