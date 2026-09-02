@@ -159,7 +159,12 @@ export async function generateKirundiReply(
       messages: history,
       timeout: MODEL_TIMEOUT_MS,
     })
-    const reply = text.trim()
+    // The chat renders plain text, so drop markdown bold/bullets the model may add.
+    const reply = text
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/^\s*[*-]\s+/gm, "- ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
     if (!reply.length) return null
     lastAiError = null
     return reply.slice(0, 1500)
