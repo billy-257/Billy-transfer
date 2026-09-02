@@ -77,6 +77,15 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 })
 export type PushSubscription = typeof pushSubscriptions.$inferSelect
 
+// Public feedback / testimonials left by customers (name + comment only, no phone).
+export const feedback = pgTable("feedback", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  comment: text("comment").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type Feedback = typeof feedback.$inferSelect
+
 // Presence: last-seen heartbeat per actor. id = "admin" or a client id.
 export const presence = pgTable("presence", {
   id: text("id").primaryKey(),

@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react"
 import { ClientChat } from "@/components/client-chat"
+import { FeedbackSection } from "@/components/feedback-section"
 
 interface Country {
   name: string
@@ -1058,6 +1059,12 @@ export function HomePageClient({
           </div>
 
         </footer>
+
+        {/* ===================================================
+            FEEDBACK (public comments, very last section)
+        =================================================== */}
+
+        <FeedbackSection />
 
       </main>
 
