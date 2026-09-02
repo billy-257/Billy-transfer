@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { ClientChat } from "@/components/client-chat"
 import { FeedbackSection } from "@/components/feedback-section"
+import { HeaderMessagesButton } from "@/components/header-messages-button"
 
 interface Country {
   name: string
@@ -527,15 +528,19 @@ export function HomePageClient({
 
         </div>
 
-        <button
-          onClick={handleShareApp}
-          className="flex items-center space-x-1.5 bg-slate-900 border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-full text-xs text-slate-300 transition shadow"
-        >
-          <Share2 className="w-3.5 h-3.5 text-green-400" />
-          <span>
-            Share App
-          </span>
-        </button>
+        <div className="flex items-center gap-2">
+          <HeaderMessagesButton />
+
+          <button
+            onClick={handleShareApp}
+            className="flex items-center space-x-1.5 bg-slate-900 border border-slate-700 hover:border-slate-500 px-3 py-1.5 rounded-full text-xs text-slate-300 transition shadow"
+          >
+            <Share2 className="w-3.5 h-3.5 text-green-400" />
+            <span>
+              Share App
+            </span>
+          </button>
+        </div>
 
       </header>
 

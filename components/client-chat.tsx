@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { MessageSquare, X, Send, Bell, BellRing, CheckCheck, Check } from "lucide-react"
 import { enablePush, pushSupported } from "@/lib/push-client"
+import { chatStore, useChatStore } from "@/lib/chat-store"
 
 type Msg = { id: number; sender: "client" | "admin"; body: string; createdAt: string }
+
+const SEEN_KEY = "billy_chat_seen_id"
 
 function getClientId() {
   let id = localStorage.getItem("billy_client_id")
@@ -21,7 +24,8 @@ function fmtTime(iso: string) {
 }
 
 export function ClientChat({ agentName = "Billy" }: { agentName?: string }) {
-  const [open, setOpen] = useState(false)
+  const { open, unread } = useChatStore()
+  const setOpen = chatStore.setOpen
   const [clientId, setClientId] = useState("")
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
@@ -55,6 +59,13 @@ export function ClientChat({ agentName = "Billy" }: { agentName?: string }) {
           const seen = new Set(prev.map((m) => m.id))
           const merged = [...prev, ...data.messages.filter((m: Msg) => !seen.has(m.id))]
           lastIdRef.current = Math.max(lastIdRef.current, ...merged.map((m) => m.id))
+          // Unread = replies from Billy newer than the last one the client has seen.
+          if (chatStore.get().open) {
+            markSeen(merged)
+          } else {
+            const seenId = Number(localStorage.getItem(SEEN_KEY) ?? 0)
+            chatStore.setUnread(merged.filter((m) => m.sender === "admin" && m.id > seenId).length)
+          }
           return merged
         })
       }
@@ -62,6 +73,12 @@ export function ClientChat({ agentName = "Billy" }: { agentName?: string }) {
       /* ignore */
     }
   }, [clientId])
+
+  function markSeen(list: Msg[]) {
+    const maxId = list.reduce((max, m) => (m.id > max ? m.id : max), 0)
+    if (maxId > 0) localStorage.setItem(SEEN_KEY, String(maxId))
+    chatStore.setUnread(0)
+  }
 
   // Presence heartbeat + admin online status.
   const beat = useCallback(async () => {
@@ -79,18 +96,28 @@ export function ClientChat({ agentName = "Billy" }: { agentName?: string }) {
     }
   }, [clientId])
 
-  // Poll for messages + presence while the widget is open.
+  // Poll for messages in the background (so the header badge updates) and faster while open.
+  // Presence heartbeat only while the widget is open.
   useEffect(() => {
-    if (!open || !clientId) return
+    if (!clientId || !registered) return
     poll()
-    beat()
-    const t1 = setInterval(poll, 4000)
-    const t2 = setInterval(beat, 20000)
+    const t1 = setInterval(poll, open ? 4000 : 10000)
+    let t2: ReturnType<typeof setInterval> | undefined
+    if (open) {
+      beat()
+      t2 = setInterval(beat, 20000)
+    }
     return () => {
       clearInterval(t1)
-      clearInterval(t2)
+      if (t2) clearInterval(t2)
     }
-  }, [open, clientId, poll, beat])
+  }, [open, clientId, registered, poll, beat])
+
+  // Opening the chat marks everything as seen.
+  useEffect(() => {
+    if (open) markSeen(messages)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, messages.length])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -152,10 +179,15 @@ export function ClientChat({ agentName = "Billy" }: { agentName?: string }) {
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-3 rounded-full bg-red-600 px-6 py-4 font-black text-white shadow-2xl transition hover:bg-red-500"
+          className="relative flex items-center gap-3 rounded-full bg-red-600 px-6 py-4 font-black text-white shadow-2xl transition hover:bg-red-500"
         >
           <MessageSquare className="h-6 w-6 animate-bounce" />
-          <span className="text-sm">Kurungika Message</span>
+          <span className="text-sm">{unread > 0 ? `Ubutumwa bushya (${unread})` : "Kurungika Message"}</span>
+          {unread > 0 ? (
+            <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-slate-950 bg-white px-1.5 text-xs font-black text-red-600 tabular-nums">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          ) : null}
         </button>
       ) : (
         <div className="flex h-[480px] w-[85vw] max-w-96 flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
