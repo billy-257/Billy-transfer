@@ -34,6 +34,7 @@ export function InboxRoom() {
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
   const [notifState, setNotifState] = useState<"idle" | "on" | "off">("idle")
+  const [waConnected, setWaConnected] = useState<boolean | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<number | null>(null)
   activeRef.current = activeId
@@ -61,6 +62,10 @@ export function InboxRoom() {
 
   useEffect(() => {
     if (typeof Notification !== "undefined" && Notification.permission === "granted") setNotifState("on")
+    fetch("/api/admin/wa-status")
+      .then((r) => r.json())
+      .then((d) => setWaConnected(Boolean(d.connected)))
+      .catch(() => setWaConnected(false))
     loadConvos()
     // Poll every 4s: keeps admin online, refreshes list + open thread.
     const t = setInterval(() => {
@@ -129,7 +134,26 @@ export function InboxRoom() {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-950">
       <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-        <h4 className="text-sm font-bold text-white">Ubutumwa bw&apos;abakiriya</h4>
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-bold text-white">Ubutumwa bw&apos;abakiriya</h4>
+          {waConnected !== null ? (
+            <span
+              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                waConnected
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : "bg-slate-800 text-slate-500"
+              }`}
+              title={
+                waConnected
+                  ? "WhatsApp irakora: Billy Transfer irishura abakiriya"
+                  : "WhatsApp ntiraboneka. Rondera intambwe zo kuyihuza."
+              }
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${waConnected ? "bg-emerald-400" : "bg-slate-600"}`} />
+              WhatsApp
+            </span>
+          ) : null}
+        </div>
         <button
           onClick={enableAdminNotif}
           className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
