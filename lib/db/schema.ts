@@ -86,6 +86,17 @@ export const feedback = pgTable("feedback", {
 })
 export type Feedback = typeof feedback.$inferSelect
 
+// Public community chat room. All members share one room; every message is stored
+// server-side forever, so it stays visible to everyone even after a reinstall.
+export const roomMessages = pgTable("room_messages", {
+  id: serial("id").primaryKey(),
+  clientId: text("client_id"), // stable per-device id, only used to align a user's own bubbles
+  name: text("name").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type RoomMessage = typeof roomMessages.$inferSelect
+
 // Presence: last-seen heartbeat per actor. id = "admin" or a client id.
 export const presence = pgTable("presence", {
   id: text("id").primaryKey(),
