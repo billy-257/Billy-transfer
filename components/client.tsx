@@ -530,6 +530,15 @@ export function HomePageClient({
         </div>
 
         <div className="flex items-center gap-2">
+          <a
+            href="/room"
+            aria-label="Aho kuganirira - injira mu kiganiro c'abanywanyi"
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-full text-xs font-bold text-white transition shadow"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Aho kuganirira</span>
+          </a>
+
           <HeaderMessagesButton />
 
           <button

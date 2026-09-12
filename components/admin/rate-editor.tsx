@@ -38,9 +38,15 @@ export function RateEditor({ usdMobileRate, usdBankRate, marginPercent }: Props)
             name="usdBankRate"
             type="number"
             step="1"
-            defaultValue={usdBankRate}
-            className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-lg font-bold text-white focus:border-emerald-500 focus:outline-none"
+            value={usdBankRate}
+            readOnly
+            aria-readonly="true"
+            className="w-full cursor-not-allowed rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-lg font-bold text-slate-400 focus:outline-none"
           />
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-sky-300">
+            <Lock className="h-3.5 w-3.5" />
+            Igiciro ca banki gishinze kuri {usdBankRate.toLocaleString("fr-FR")} ntigihinduka.
+          </p>
         </div>
       </div>
 

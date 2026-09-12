@@ -10,10 +10,14 @@ export type RateData = {
   margin: number
 }
 
+// Bank rate is fixed: it must always be 5920 BIF per USD, no matter what other
+// rates the admin changes. This is the single source of truth for the bank rate.
+export const FIXED_BANK_RATE = 5920
+
 const DEFAULTS: RateData = {
   aedRates: {},
   usdMobileRate: 5980,
-  usdBankRate: 5850,
+  usdBankRate: FIXED_BANK_RATE,
   margin: 0.99,
 }
 
@@ -25,7 +29,8 @@ export async function getRateSettings(): Promise<RateData> {
     return {
       aedRates: r.aedRates ?? {},
       usdMobileRate: Number(r.usdMobileRate),
-      usdBankRate: Number(r.usdBankRate),
+      // Always force the bank rate to the fixed value, ignoring any stored value.
+      usdBankRate: FIXED_BANK_RATE,
       margin: Number(r.margin),
     }
   } catch (err) {
