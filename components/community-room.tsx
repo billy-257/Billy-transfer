@@ -31,7 +31,8 @@ function getClientId() {
   return id
 }
 
-export function CommunityRoom() {
+export function CommunityRoom({ variant = "inline" }: { variant?: "inline" | "page" }) {
+  const isPage = variant === "page"
   const [name, setName] = useState("")
   const [registered, setRegistered] = useState(false)
   const [nameInput, setNameInput] = useState("")
@@ -193,7 +194,11 @@ export function CommunityRoom() {
     <section
       id="room"
       aria-labelledby="room-title"
-      className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl"
+      className={
+        isPage
+          ? "flex flex-1 min-h-0 flex-col bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl"
+          : "bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl"
+      }
     >
       <div className="flex items-start justify-between gap-4 mb-1">
         <h3 id="room-title" className="text-base md:text-lg font-black text-emerald-400 tracking-wide uppercase">
@@ -213,7 +218,9 @@ export function CommunityRoom() {
       <div
         ref={scrollRef}
         onScroll={trackScroll}
-        className="h-80 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 p-3 flex flex-col gap-3"
+        className={`overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950 p-3 flex flex-col gap-3 ${
+          isPage ? "flex-1 min-h-0" : "h-80"
+        }`}
       >
         {hasMore ? (
           <button
