@@ -23,9 +23,12 @@ export function MoneyExpressCalculator({ usdMobileRate, usdBankRate, fees }: Pro
   const [method, setMethod] = useState<PayoutMethod>("mobile")
 
   const anchorUsdRate = method === "mobile" ? usdMobileRate : usdBankRate
-  const { rate: liveUsdRate, direction } = useLiveRate(anchorUsdRate)
+  const { rate: liveUsdRate, direction: liveDirection } = useLiveRate(anchorUsdRate)
 
-  const bifPerUsd = liveUsdRate
+  // The bank rate is fixed and must never drift; only the mobile rate is "live".
+  const isBank = method === "bank"
+  const bifPerUsd = isBank ? usdBankRate : liveUsdRate
+  const direction = isBank ? ("flat" as const) : liveDirection
   const bifPerAed = bifPerUsd / AED_PER_USD
 
   // Panel 1: BIF in -> AED out
@@ -47,11 +50,15 @@ export function MoneyExpressCalculator({ usdMobileRate, usdBankRate, fees }: Pro
       {/* Big live USD -> BIF rate */}
       <div className="mb-5 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-slate-950 p-5 text-center">
         <div className="mb-1 flex items-center justify-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-          </span>
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300/80">P2P Live &middot; Idorari 1 (USD)</p>
+          {!isBank ? (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+          ) : null}
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300/80">
+            {isBank ? "Igiciro ca Banki \u00b7 Idorari 1 (USD)" : "P2P Live \u00b7 Idorari 1 (USD)"}
+          </p>
         </div>
         <p className="mt-1 flex items-center justify-center gap-2 text-4xl font-black leading-none text-emerald-400 tabular-nums md:text-5xl">
           {money(bifPerUsd)}

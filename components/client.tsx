@@ -13,7 +13,6 @@ import {
 } from "lucide-react"
 import { ClientChat } from "@/components/client-chat"
 import { FeedbackSection } from "@/components/feedback-section"
-import { CommunityRoom } from "@/components/community-room"
 import { HeaderMessagesButton } from "@/components/header-messages-button"
 
 interface Country {
@@ -1074,12 +1073,6 @@ export function HomePageClient({
           </div>
 
         </footer>
-
-        {/* ===================================================
-            COMMUNITY ROOM (all members chat, stored forever)
-        =================================================== */}
-
-        <CommunityRoom />
 
         {/* ===================================================
             FEEDBACK (public comments, very last section)
