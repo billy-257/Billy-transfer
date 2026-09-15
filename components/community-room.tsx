@@ -94,13 +94,13 @@ export function CommunityRoom({ variant = "inline" }: { variant?: "inline" | "pa
     }
   }, [])
 
-  // Live polling every 4s (only meaningful once the member has joined).
+  // Everyone can read the room right away; polling runs whether or not they've
+  // entered a name. The name is only required to post a message.
   useEffect(() => {
-    if (!registered) return
     poll()
     const t = setInterval(poll, 4000)
     return () => clearInterval(t)
-  }, [registered, poll])
+  }, [poll])
 
   useEffect(() => {
     if (shouldStickRef.current) {
