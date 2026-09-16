@@ -18,6 +18,8 @@ function getClientId() {
 }
 
 export function NotifyOptin() {
+  // Fallback banner is only shown if automatic subscription could not complete
+  // (e.g. the browser requires a tap first, or the user blocked it once).
   const [show, setShow] = useState(false)
   const [status, setStatus] = useState<"idle" | "on" | "error">("idle")
   const [msg, setMsg] = useState("")
@@ -26,11 +28,27 @@ export function NotifyOptin() {
   useEffect(() => {
     clientId.current = getClientId()
     if (!pushSupported()) return
-    const dismissed = localStorage.getItem(DISMISS_KEY) === "1"
-    const granted = typeof Notification !== "undefined" && Notification.permission === "granted"
-    // Show the opt-in unless already granted or previously dismissed.
-    if (!granted && !dismissed) setShow(true)
-    if (granted) setStatus("on")
+
+    const perm = typeof Notification !== "undefined" ? Notification.permission : "denied"
+
+    // Already granted: silently (re)subscribe on the server, no UI needed.
+    if (perm === "granted") {
+      enablePush("client", clientId.current).then((r) => setStatus(r.ok ? "on" : "idle"))
+      return
+    }
+
+    // Never decided yet: automatically ask and subscribe, so the member does not
+    // have to hunt for a button. The browser's own one-time prompt still appears.
+    if (perm === "default") {
+      enablePush("client", clientId.current).then((r) => {
+        if (r.ok) {
+          setStatus("on")
+        } else if (localStorage.getItem(DISMISS_KEY) !== "1") {
+          // Auto-attempt was blocked (needs a user gesture) — show the tap fallback.
+          setShow(true)
+        }
+      })
+    }
   }, [])
 
   async function turnOn() {
@@ -60,7 +78,7 @@ export function NotifyOptin() {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-white">Emera integuza kuri telefone</p>
         <p className="text-xs text-slate-400">
-          {msg || "Uzomenyeshwa ako kanya igihe ibiciro bihindutse canke hari itangazo rishasha."}
+          {msg || "Uzomenyeshwa ako kanya igihe ibiciro bihindutse, hari itangazo, canke ubutumwa bushasha mu kiganiro."}
         </p>
       </div>
       <button
