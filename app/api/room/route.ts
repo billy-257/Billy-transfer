@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { addRoomMessage, listAfter, listBefore, listRecent, HOST_NAME } from "@/lib/room"
 import { isAuthenticated } from "@/lib/admin-auth"
+import { sendPushToAllClients } from "@/lib/push"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -56,6 +57,22 @@ export async function POST(req: Request) {
     const finalName = isHost ? HOST_NAME : n
 
     const row = await addRoomMessage(cid, finalName, b, isHost)
+
+    // Immediately notify everyone else in the room of the new message.
+    try {
+      await sendPushToAllClients(
+        {
+          title: `${finalName} · Aho kuganirira`,
+          body: b.slice(0, 140),
+          url: "/room",
+          tag: "room-chat",
+        },
+        { excludeClientId: cid ?? undefined },
+      )
+    } catch (err) {
+      console.log("[v0] room push failed:", (err as Error).message)
+    }
+
     return NextResponse.json({ ok: true, message: row })
   } catch {
     return NextResponse.json({ ok: false, error: "Habaye ikibazo" }, { status: 500 })
