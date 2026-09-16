@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { rateSettings, siteContent } from "@/lib/db/schema"
 import { createSession, destroySession, verifyPassword } from "@/lib/admin-auth"
-import { FIXED_BANK_RATE } from "@/lib/rates"
+import { sendPushToAllClients } from "@/lib/push"
 import { DEFAULT_CONTENT, type SiteContent, type FeeTier, type Country } from "@/lib/content-types"
 
 export type SaveState = { success?: boolean; error?: string }
@@ -31,10 +31,10 @@ export async function saveRates(_prev: SaveState, formData: FormData): Promise<S
   }
   try {
     const usdMobileRate = Number(formData.get("usdMobileRate"))
-    // Bank rate is fixed at 5920 and always ignored, regardless of what is submitted.
-    const usdBankRate = FIXED_BANK_RATE
+    const usdBankRate = Number(formData.get("usdBankRate"))
     const marginPercent = Number(formData.get("marginPercent"))
-    if (![usdMobileRate, marginPercent].every((n) => Number.isFinite(n) && n >= 0)) {
+    const notify = formData.get("notify") === "on"
+    if (![usdMobileRate, usdBankRate, marginPercent].every((n) => Number.isFinite(n) && n >= 0)) {
       return { error: "Injiza ibiciro vy'ukuri." }
     }
     const margin = Math.max(0, Math.min(1, 1 - marginPercent / 100))
@@ -50,6 +50,16 @@ export async function saveRates(_prev: SaveState, formData: FormData): Promise<S
       .onConflictDoUpdate({ target: rateSettings.id, set: values })
     revalidatePath("/")
     revalidatePath("/admin")
+
+    // Notify all subscribed clients that the rate changed.
+    if (notify) {
+      await sendPushToAllClients({
+        title: "Ibiciro bishasha kuri BILLY FAST TRANSFER",
+        body: `Idorari 1 = ${usdMobileRate.toLocaleString("en-US")} BIF (Lumicash) \u00b7 ${usdBankRate.toLocaleString("en-US")} BIF (Banki). Reba none!`,
+        url: "/",
+        tag: "rate-update",
+      })
+    }
     return { success: true }
   } catch {
     return { error: "Habaye ikibazo mu kubika." }

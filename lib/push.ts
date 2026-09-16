@@ -73,3 +73,30 @@ export async function sendPush(
     }
   }
 }
+
+// Broadcasts a notification to every subscribed client (rate updates, announcements).
+export async function sendPushToAllClients(payload: PushPayload) {
+  await getPushKeys()
+
+  const subs = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.role, "client"))
+  const body = JSON.stringify(payload)
+  const stale: number[] = []
+
+  await Promise.all(
+    subs.map(async (s) => {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body)
+      } catch (err: unknown) {
+        const status = (err as { statusCode?: number })?.statusCode
+        if (status === 404 || status === 410) stale.push(s.id)
+      }
+    }),
+  )
+
+  if (stale.length) {
+    for (const id of stale) {
+      await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, id))
+    }
+  }
+  return { sent: subs.length - stale.length }
+}

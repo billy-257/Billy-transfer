@@ -14,6 +14,8 @@ import {
 import { ClientChat } from "@/components/client-chat"
 import { FeedbackSection } from "@/components/feedback-section"
 import { HeaderMessagesButton } from "@/components/header-messages-button"
+import { MemberSignup } from "@/components/member-signup"
+import { NotifyOptin } from "@/components/notify-optin"
 
 interface Country {
   name: string
@@ -102,6 +104,12 @@ export function HomePageClient({
   const fallbackP2PRate = Number(
     rates.usdMobileRate || 5982
   )
+
+  // Bank rate is set by the admin and is separate from the live P2P (mobile) rate.
+  const bankRate = Number(rates.usdBankRate || 5920)
+
+  // Which payout the visitor is pricing: mobile (live P2P) or bank (fixed rate).
+  const [transferType, setTransferType] = useState<"mobile" | "bank">("mobile")
 
   const USD_TO_AED = 3.67
 
@@ -210,8 +218,12 @@ export function HomePageClient({
   const [aedTouched, setAedTouched] =
     useState(false)
 
+  // Bank uses its own fixed rate; mobile uses the live P2P rate.
+  const activeUsdRate =
+    transferType === "bank" ? bankRate : p2pRate
+
   const bifPerAed =
-    p2pRate / USD_TO_AED
+    activeUsdRate / USD_TO_AED
 
   // Keep the 1 AED example in sync with the live rate until the user edits it.
   // Exact conversion (no hidden margin) so the numbers match the displayed rate.
@@ -436,11 +448,6 @@ export function HomePageClient({
           "FinBank",
         ]
 
-  const [transferType, setTransferType] =
-    useState<"mobile" | "bank">(
-      "mobile"
-    )
-
   /*
    * =========================================================
    * DISPLAY
@@ -449,7 +456,7 @@ export function HomePageClient({
 
   const displayedP2PRate =
     Math.round(
-      p2pRate
+      activeUsdRate
     ).toLocaleString()
 
   // Frais (fee) tiers, charged separately in AED. Falls back to defaults.
@@ -555,6 +562,8 @@ export function HomePageClient({
 
       <main className="max-w-4xl mx-auto px-4 mt-6 space-y-8">
 
+        <NotifyOptin />
+
         {/* ===================================================
             CONTACT
         =================================================== */}
@@ -609,15 +618,21 @@ export function HomePageClient({
             <div className="flex items-center justify-center gap-2 text-emerald-400 text-sm font-black tracking-[0.18em] uppercase">
               IDORARI 1 (USD)
 
-              <span className="relative flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
-              </span>
+              {transferType === "mobile" ? (
+                <span className="relative flex h-3 w-3">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
+                </span>
+              ) : (
+                <Building2 className="h-4 w-4 text-sky-400" />
+              )}
             </div>
 
             <div
               className={`mt-2 text-5xl md:text-6xl font-black transition-all ${
-                rateDirection === "up"
+                transferType === "bank"
+                  ? "text-sky-400"
+                  : rateDirection === "up"
                   ? "text-emerald-300"
                   : rateDirection === "down"
                   ? "text-red-300"
@@ -639,24 +654,33 @@ export function HomePageClient({
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs">
 
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-emerald-400 font-bold">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                LIVE P2P
-              </span>
+              {transferType === "mobile" ? (
+                <>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-emerald-400 font-bold">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    LIVE P2P
+                  </span>
 
-              <span className="text-slate-500">
-                {p2pLoading
-                  ? "Updating..."
-                  : p2pUpdated
-                  ? `Updated ${p2pUpdated.toLocaleTimeString(
-                      [],
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )}`
-                  : "Live rate"}
-              </span>
+                  <span className="text-slate-500">
+                    {p2pLoading
+                      ? "Updating..."
+                      : p2pUpdated
+                      ? `Updated ${p2pUpdated.toLocaleTimeString(
+                          [],
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}`
+                      : "Live rate"}
+                  </span>
+                </>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/30 px-3 py-1.5 text-sky-400 font-bold">
+                  <Building2 className="h-3.5 w-3.5" />
+                  IGICIRO CA BANKI
+                </span>
+              )}
 
             </div>
 
@@ -1073,6 +1097,12 @@ export function HomePageClient({
           </div>
 
         </footer>
+
+        {/* ===================================================
+            MEMBER SIGNUP (contact directory for the business)
+        =================================================== */}
+
+        <MemberSignup />
 
         {/* ===================================================
             FEEDBACK (public comments, very last section)

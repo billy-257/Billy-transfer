@@ -1,9 +1,16 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Users, Send, ChevronUp } from "lucide-react"
+import { Users, Send, ChevronUp, BadgeCheck } from "lucide-react"
 
-type Msg = { id: number; clientId: string | null; name: string; body: string; createdAt: string }
+type Msg = {
+  id: number
+  clientId: string | null
+  name: string
+  body: string
+  isHost?: boolean
+  createdAt: string
+}
 
 const NAME_KEY = "billy_room_name"
 const CID_KEY = "billy_client_id"
@@ -243,31 +250,52 @@ export function CommunityRoom({ variant = "inline" }: { variant?: "inline" | "pa
           </div>
         ) : (
           messages.map((m) => {
-            const mine = m.clientId && m.clientId === clientId.current
+            const host = !!m.isHost
+            // Host messages always render as the business, never as "mine".
+            const mine = !host && m.clientId && m.clientId === clientId.current
             return (
               <div key={m.id} className={`flex gap-2.5 ${mine ? "flex-row-reverse" : ""}`}>
                 <div
                   aria-hidden
                   className={`w-8 h-8 rounded-full text-[11px] font-black flex items-center justify-center flex-shrink-0 ${
-                    mine
-                      ? "bg-emerald-600/20 border border-emerald-500/40 text-emerald-300"
-                      : "bg-slate-700/40 border border-slate-600 text-slate-300"
+                    host
+                      ? "bg-amber-400/20 border border-amber-400/50 text-amber-300"
+                      : mine
+                        ? "bg-emerald-600/20 border border-emerald-500/40 text-emerald-300"
+                        : "bg-slate-700/40 border border-slate-600 text-slate-300"
                   }`}
                 >
-                  {initials(m.name)}
+                  {host ? <BadgeCheck className="w-4 h-4" /> : initials(m.name)}
                 </div>
                 <div className={`min-w-0 max-w-[78%] ${mine ? "items-end text-right" : ""} flex flex-col`}>
                   <div className={`flex items-baseline gap-2 ${mine ? "flex-row-reverse" : ""}`}>
-                    <span className="text-xs font-bold text-white truncate">{mine ? "Wewe" : m.name}</span>
+                    <span
+                      className={`flex items-center gap-1 text-xs font-bold truncate ${
+                        host ? "text-amber-300" : "text-white"
+                      }`}
+                    >
+                      {host ? (
+                        <>
+                          {m.name}
+                          <BadgeCheck className="w-3.5 h-3.5 text-amber-400" aria-label="Admin" />
+                        </>
+                      ) : mine ? (
+                        "Wewe"
+                      ) : (
+                        m.name
+                      )}
+                    </span>
                     <time dateTime={m.createdAt} className="text-[10px] text-slate-500 whitespace-nowrap">
                       {timeShort(m.createdAt)}
                     </time>
                   </div>
                   <div
                     className={`mt-1 rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                      mine
-                        ? "bg-emerald-600 text-white rounded-tr-sm"
-                        : "bg-slate-800 text-slate-200 rounded-tl-sm"
+                      host
+                        ? "bg-amber-400/10 border border-amber-400/30 text-amber-50 rounded-tl-sm"
+                        : mine
+                          ? "bg-emerald-600 text-white rounded-tr-sm"
+                          : "bg-slate-800 text-slate-200 rounded-tl-sm"
                     }`}
                   >
                     {m.body}
