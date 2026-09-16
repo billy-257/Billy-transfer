@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { addRoomMessage, listAfter, listBefore, listRecent } from "@/lib/room"
+import { addRoomMessage, listAfter, listBefore, listRecent, HOST_NAME } from "@/lib/room"
+import { isAuthenticated } from "@/lib/admin-auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -46,7 +47,15 @@ export async function POST(req: Request) {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "anon"
     if (limited(ip)) return NextResponse.json({ ok: false, error: "Tegereza gato" }, { status: 429 })
 
-    const row = await addRoomMessage(cid, n, b)
+    // Only the authenticated admin may post as the business host. Everyone else
+    // is blocked from impersonating the reserved name.
+    const isHost = await isAuthenticated()
+    if (!isHost && n.toUpperCase() === HOST_NAME) {
+      return NextResponse.json({ ok: false, error: "Iryo zina ryabitswe kuri BILLY gusa" }, { status: 403 })
+    }
+    const finalName = isHost ? HOST_NAME : n
+
+    const row = await addRoomMessage(cid, finalName, b, isHost)
     return NextResponse.json({ ok: true, message: row })
   } catch {
     return NextResponse.json({ ok: false, error: "Habaye ikibazo" }, { status: 500 })

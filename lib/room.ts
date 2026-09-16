@@ -5,6 +5,9 @@ import { roomMessages, type RoomMessage } from "@/lib/db/schema"
 
 export const ROOM_PAGE = 40
 
+// Reserved display name for the business. Only the authenticated admin may post as this.
+export const HOST_NAME = "BILLY FAST TRANSFER"
+
 // Most recent page, returned in chronological (oldest-first) order for display.
 export async function listRecent(): Promise<RoomMessage[]> {
   const rows = await db.select().from(roomMessages).orderBy(desc(roomMessages.id)).limit(ROOM_PAGE)
@@ -31,7 +34,8 @@ export async function addRoomMessage(
   clientId: string | null,
   name: string,
   body: string,
+  isHost = false,
 ): Promise<RoomMessage> {
-  const [row] = await db.insert(roomMessages).values({ clientId, name, body }).returning()
+  const [row] = await db.insert(roomMessages).values({ clientId, name, body, isHost }).returning()
   return row
 }

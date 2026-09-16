@@ -1,4 +1,4 @@
-import { integer, jsonb, numeric, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core"
+import { boolean, integer, jsonb, numeric, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core"
 import type { SiteContent } from "@/lib/content-types"
 
 // Single-row (id=1) numeric rate settings.
@@ -93,9 +93,22 @@ export const roomMessages = pgTable("room_messages", {
   clientId: text("client_id"), // stable per-device id, only used to align a user's own bubbles
   name: text("name").notNull(),
   body: text("body").notNull(),
+  isHost: boolean("is_host").notNull().default(false), // true = posted by admin (BILLY FAST TRANSFER)
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 export type RoomMessage = typeof roomMessages.$inferSelect
+
+// Member directory: people register their contact so the admin can reach them.
+export const members = pgTable("members", {
+  id: serial("id").primaryKey(),
+  clientId: text("client_id"), // stable per-device id to dedupe self-updates
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  town: text("town").notNull(),
+  photo: text("photo"), // small data-URL thumbnail, optional
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type Member = typeof members.$inferSelect
 
 // Presence: last-seen heartbeat per actor. id = "admin" or a client id.
 export const presence = pgTable("presence", {

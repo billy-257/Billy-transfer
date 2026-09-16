@@ -1,7 +1,7 @@
 "use client"
 
 import { useActionState } from "react"
-import { CheckCircle2, Save, Smartphone, Building2, Lock } from "lucide-react"
+import { CheckCircle2, Save, Smartphone, Building2, Lock, Bell } from "lucide-react"
 import { saveRates, type SaveState } from "@/app/admin/actions"
 
 type Props = {
@@ -38,17 +38,25 @@ export function RateEditor({ usdMobileRate, usdBankRate, marginPercent }: Props)
             name="usdBankRate"
             type="number"
             step="1"
-            value={usdBankRate}
-            readOnly
-            aria-readonly="true"
-            className="w-full cursor-not-allowed rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-lg font-bold text-slate-400 focus:outline-none"
+            defaultValue={usdBankRate}
+            className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-lg font-bold text-white focus:border-sky-500 focus:outline-none"
           />
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-sky-300">
-            <Lock className="h-3.5 w-3.5" />
-            Igiciro ca banki gishinze kuri {usdBankRate.toLocaleString("fr-FR")} ntigihinduka.
-          </p>
+          <p className="mt-2 text-xs text-slate-400">Ushobora guhindura igiciro ca banki uko ushaka.</p>
         </div>
       </div>
+
+      <label className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 cursor-pointer">
+        <input
+          name="notify"
+          type="checkbox"
+          defaultChecked
+          className="h-5 w-5 rounded border-slate-600 bg-slate-900 accent-emerald-500"
+        />
+        <span className="flex items-center gap-2 text-sm font-bold text-white">
+          <Bell className="h-4 w-4 text-emerald-400" />
+          Menyesha abakiriya bose kuri telefone (push) ko ibiciro vyahindutse
+        </span>
+      </label>
 
       <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5">
         <label className="mb-1.5 block text-sm font-bold text-white">Margin (%)</label>
