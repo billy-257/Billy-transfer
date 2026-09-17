@@ -74,12 +74,13 @@ export async function sendPush(
   }
 }
 
-// Broadcasts a notification to every subscribed client (rate updates, announcements,
+// Broadcasts a notification to EVERY subscribed device — installed apps and
+// browser/link users, clients and admin alike (rate updates, announcements,
 // chat messages). Pass excludeClientId to skip the person who triggered it.
 export async function sendPushToAllClients(payload: PushPayload, opts?: { excludeClientId?: string }) {
   await getPushKeys()
 
-  const all = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.role, "client"))
+  const all = await db.select().from(pushSubscriptions)
   const subs = opts?.excludeClientId ? all.filter((s) => s.clientId !== opts.excludeClientId) : all
   const body = JSON.stringify(payload)
   const stale: number[] = []
