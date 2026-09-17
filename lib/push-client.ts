@@ -15,6 +15,21 @@ export function pushSupported() {
 
 export type EnablePushResult = { ok: boolean; error?: string }
 
+// Ensures the service worker is registered and active, without hanging forever
+// if registration is slow or was never triggered (common in installed PWAs).
+async function getReadyRegistration(): Promise<ServiceWorkerRegistration> {
+  const existing = await navigator.serviceWorker.getRegistration()
+  if (!existing) {
+    await navigator.serviceWorker.register("/sw.js")
+  }
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<ServiceWorkerRegistration>((_, reject) =>
+      setTimeout(() => reject(new Error("Service worker timeout")), 10000),
+    ),
+  ])
+}
+
 // Subscribes the browser to push and registers it on the server.
 export async function enablePush(role: "admin" | "client", clientId?: string): Promise<EnablePushResult> {
   if (!pushSupported()) return { ok: false, error: "Iyi telefone/browser ntiyemera integuza." }
@@ -23,7 +38,7 @@ export async function enablePush(role: "admin" | "client", clientId?: string): P
   if (permission !== "granted") return { ok: false, error: "Ntiwemeye integuza." }
 
   try {
-    const reg = await navigator.serviceWorker.ready
+    const reg = await getReadyRegistration()
     const res = await fetch("/api/push/subscribe")
     const { publicKey } = await res.json()
     if (!publicKey) return { ok: false, error: "Nta rufunguzo rwaboneka." }
