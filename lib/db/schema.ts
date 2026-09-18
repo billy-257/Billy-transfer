@@ -118,6 +118,19 @@ export const presence = pgTable("presence", {
 })
 export type Presence = typeof presence.$inferSelect
 
+// Single-row (id=1) in-app popup / advert shown when a user opens the app.
+export const appPopup = pgTable("app_popup", {
+  id: integer("id").primaryKey().default(1),
+  title: text("title"),
+  body: text("body").notNull().default(""),
+  imageUrl: text("image_url"), // optional ad image (data-URL or link)
+  ctaLabel: text("cta_label"), // optional button label
+  ctaUrl: text("cta_url"), // optional button link
+  active: boolean("active").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type AppPopup = typeof appPopup.$inferSelect
+
 // Single-row (id=1) VAPID keypair for Web Push.
 export const pushConfig = pgTable("push_config", {
   id: integer("id").primaryKey().default(1),

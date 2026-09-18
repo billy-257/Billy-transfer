@@ -16,6 +16,7 @@ import { FeedbackSection } from "@/components/feedback-section"
 import { HeaderMessagesButton } from "@/components/header-messages-button"
 import { MemberSignup } from "@/components/member-signup"
 import { NotifyOptin } from "@/components/notify-optin"
+import { AppPopup } from "@/components/app-popup"
 
 interface Country {
   name: string
@@ -559,6 +560,8 @@ export function HomePageClient({
         </div>
 
       </header>
+
+      <AppPopup />
 
       <main className="max-w-4xl mx-auto px-4 mt-6 space-y-8">
 

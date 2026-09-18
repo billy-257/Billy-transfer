@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, DollarSign, LayoutList, Users, MessageSquare, Bell, Sparkles, Contact, Megaphone } from "lucide-react"
+import { LogOut, DollarSign, LayoutList, Users, MessageSquare, Bell, Sparkles, Contact, Megaphone, MonitorSmartphone } from "lucide-react"
 import { logout } from "@/app/admin/actions"
 import { RateEditor } from "@/components/admin/rate-editor"
 import { ContentEditor } from "@/components/admin/content-editor"
@@ -10,11 +10,12 @@ import { InboxRoom } from "@/components/admin/inbox-room"
 import { AiIdeasRoom } from "@/components/admin/ai-ideas-room"
 import { MembersRoom } from "@/components/admin/members-room"
 import { AnnounceRoom } from "@/components/admin/announce-room"
+import { PopupEditor } from "@/components/admin/popup-editor"
 import { enablePush } from "@/lib/push-client"
 import type { SiteContent } from "@/lib/content-types"
 import type { VisitStats } from "@/lib/admin-data"
 
-type Tab = "rates" | "content" | "visitors" | "inbox" | "ai" | "members" | "announce"
+type Tab = "rates" | "content" | "visitors" | "inbox" | "ai" | "members" | "announce" | "popup"
 
 type Props = {
   usdMobileRate: number
@@ -64,12 +65,15 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
         </p>
       ) : null}
 
-      <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900 p-1 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900 p-1 sm:grid-cols-4 lg:grid-cols-8">
         <button onClick={() => setTab("inbox")} className={tabBtn("inbox", tab === "inbox")}>
           <MessageSquare className="h-4 w-4" /> Ubutumwa
         </button>
         <button onClick={() => setTab("announce")} className={tabBtn("announce", tab === "announce")}>
           <Megaphone className="h-4 w-4" /> Amatangazo
+        </button>
+        <button onClick={() => setTab("popup")} className={tabBtn("popup", tab === "popup")}>
+          <MonitorSmartphone className="h-4 w-4" /> Popup
         </button>
         <button onClick={() => setTab("members")} className={tabBtn("members", tab === "members")}>
           <Contact className="h-4 w-4" /> Abanywanyi
@@ -92,6 +96,8 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
         <InboxRoom />
       ) : tab === "announce" ? (
         <AnnounceRoom />
+      ) : tab === "popup" ? (
+        <PopupEditor />
       ) : tab === "members" ? (
         <MembersRoom />
       ) : tab === "ai" ? (
