@@ -8,6 +8,7 @@ import {
   Share2,
   Smartphone,
   Building2,
+  Landmark,
   ShieldCheck,
   Users,
 } from "lucide-react"
@@ -109,8 +110,9 @@ export function HomePageClient({
   // Bank rate is set by the admin and is separate from the live P2P (mobile) rate.
   const bankRate = Number(rates.usdBankRate || 5920)
 
-  // Which payout the visitor is pricing: mobile (live P2P) or bank (fixed rate).
-  const [transferType, setTransferType] = useState<"mobile" | "bank">("mobile")
+  // Which payout the visitor is pricing: mobile (live P2P), bank (fixed rate),
+  // or COOPEC FENACOBU (30 BIF below the live rate + 5 AED on every fee tier).
+  const [transferType, setTransferType] = useState<"mobile" | "bank" | "coopec">("mobile")
 
   const USD_TO_AED = 3.67
 
@@ -219,9 +221,18 @@ export function HomePageClient({
   const [aedTouched, setAedTouched] =
     useState(false)
 
-  // Bank uses its own fixed rate; mobile uses the live P2P rate.
+  // COOPEC FENACOBU sits 30 BIF below the main (live P2P) rate and adds 5 AED
+  // to every fee tier.
+  const COOPEC_RATE_DISCOUNT = 30
+  const COOPEC_FEE_EXTRA = 5
+
+  // Bank uses its own fixed rate; COOPEC is 30 below live; mobile uses live P2P.
   const activeUsdRate =
-    transferType === "bank" ? bankRate : p2pRate
+    transferType === "bank"
+      ? bankRate
+      : transferType === "coopec"
+      ? Math.max(0, p2pRate - COOPEC_RATE_DISCOUNT)
+      : p2pRate
 
   const bifPerAed =
     activeUsdRate / USD_TO_AED
@@ -449,6 +460,8 @@ export function HomePageClient({
           "FinBank",
         ]
 
+  const coopecMethods = ["COOPEC FENACOBU"]
+
   /*
    * =========================================================
    * DISPLAY
@@ -469,6 +482,12 @@ export function HomePageClient({
     .sort((a, b) => a.maxAed - b.maxAed)
 
   const fees = feeTiers.length > 0 ? feeTiers : FALLBACK_FEES
+
+  // COOPEC adds 5 AED to every fee tier; other methods keep the base fees.
+  const displayedFees =
+    transferType === "coopec"
+      ? fees.map((t) => ({ ...t, fee: t.fee + COOPEC_FEE_EXTRA }))
+      : fees
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24">
@@ -626,6 +645,8 @@ export function HomePageClient({
                   <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-400" />
                 </span>
+              ) : transferType === "coopec" ? (
+                <Landmark className="h-4 w-4 text-amber-400" />
               ) : (
                 <Building2 className="h-4 w-4 text-sky-400" />
               )}
@@ -635,6 +656,8 @@ export function HomePageClient({
               className={`mt-2 text-5xl md:text-6xl font-black transition-all ${
                 transferType === "bank"
                   ? "text-sky-400"
+                  : transferType === "coopec"
+                  ? "text-amber-400"
                   : rateDirection === "up"
                   ? "text-emerald-300"
                   : rateDirection === "down"
@@ -678,6 +701,11 @@ export function HomePageClient({
                       : "Live rate"}
                   </span>
                 </>
+              ) : transferType === "coopec" ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-amber-400 font-bold">
+                  <Landmark className="h-3.5 w-3.5" />
+                  COOPEC FENACOBU (-30)
+                </span>
               ) : (
                 <span className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/30 px-3 py-1.5 text-sky-400 font-bold">
                   <Building2 className="h-3.5 w-3.5" />
@@ -697,38 +725,42 @@ export function HomePageClient({
 
         <section className="bg-slate-900 border border-slate-800 rounded-3xl p-4 md:p-6 shadow-xl">
 
-          <div className="grid grid-cols-2 bg-slate-950 border border-slate-800 rounded-2xl p-1">
+          <div className="grid grid-cols-3 gap-1 bg-slate-950 border border-slate-800 rounded-2xl p-1">
 
             <button
-              onClick={() =>
-                setTransferType(
-                  "mobile"
-                )
-              }
-              className={`rounded-xl py-4 px-3 font-black transition flex items-center justify-center gap-2 ${
+              onClick={() => setTransferType("mobile")}
+              className={`rounded-xl py-3 px-2 font-black transition flex flex-col items-center justify-center gap-1 text-[11px] sm:text-sm ${
                 transferType === "mobile"
                   ? "bg-emerald-500 text-slate-950 shadow-lg"
                   : "text-slate-400 hover:text-white"
               }`}
             >
               <Smartphone className="w-5 h-5" />
-              Lumicash / Bancobu
+              <span className="text-center leading-tight">Lumicash / Bancobu</span>
             </button>
 
             <button
-              onClick={() =>
-                setTransferType(
-                  "bank"
-                )
-              }
-              className={`rounded-xl py-4 px-3 font-black transition flex items-center justify-center gap-2 ${
+              onClick={() => setTransferType("bank")}
+              className={`rounded-xl py-3 px-2 font-black transition flex flex-col items-center justify-center gap-1 text-[11px] sm:text-sm ${
                 transferType === "bank"
                   ? "bg-emerald-500 text-slate-950 shadow-lg"
                   : "text-slate-400 hover:text-white"
               }`}
             >
               <Building2 className="w-5 h-5" />
-              Izindi Banki
+              <span className="text-center leading-tight">Izindi Banki</span>
+            </button>
+
+            <button
+              onClick={() => setTransferType("coopec")}
+              className={`rounded-xl py-3 px-2 font-black transition flex flex-col items-center justify-center gap-1 text-[11px] sm:text-sm ${
+                transferType === "coopec"
+                  ? "bg-amber-500 text-slate-950 shadow-lg"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Landmark className="w-5 h-5" />
+              <span className="text-center leading-tight">COOPEC FENACOBU</span>
             </button>
 
           </div>
@@ -737,6 +769,8 @@ export function HomePageClient({
 
             {(transferType === "mobile"
               ? mobilePaymentMethods
+              : transferType === "coopec"
+              ? coopecMethods
               : burundiBanks
             ).map(
               (method) => (
@@ -836,9 +870,15 @@ export function HomePageClient({
             ukurikije uko wohereza kwinshi.
           </p>
 
+          {transferType === "coopec" && (
+            <p className="text-xs font-bold text-amber-400 mb-4 -mt-3">
+              COOPEC FENACOBU: hiyongerwaho 5 AED kuri buri frais.
+            </p>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            {fees.map((tier, index) => {
-              const previous = index > 0 ? fees[index - 1].maxAed : 0
+            {displayedFees.map((tier, index) => {
+              const previous = index > 0 ? displayedFees[index - 1].maxAed : 0
               return (
                 <div
                   key={`${tier.maxAed}-${index}`}
