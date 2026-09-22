@@ -34,6 +34,51 @@
   animation: marquee 28s linear infinite;
 }
 
+/* ---- Splash screen (opening animation) ---- */
+@keyframes splashFade {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+@keyframes splashWordUp {
+  0% { opacity: 0; transform: translateY(28px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes splashRing {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes splashLogoPop {
+  0% { opacity: 0; transform: scale(0.4) rotate(-12deg); }
+  60% { opacity: 1; transform: scale(1.12) rotate(4deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.splash-root { animation: splashFade 3.4s ease forwards; }
+.splash-logo { animation: splashLogoPop 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.splash-ring { animation: splashRing 1.6s ease-out infinite; }
+.splash-word { opacity: 0; animation: splashWordUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+/* ---- Showcase reveal on scroll/mount ---- */
+@keyframes floatUp {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes softFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.reveal { opacity: 0; animation: floatUp 0.8s ease forwards; }
+.float-soft { animation: softFloat 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-root { animation-duration: 1.6s; }
+  .splash-logo, .splash-ring, .splash-word, .reveal, .float-soft {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
 html {
   -webkit-text-size-adjust: 100%;
 }
