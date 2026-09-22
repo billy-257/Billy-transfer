@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { VisitTracker } from "@/components/visit-tracker"
+import { SplashScreen } from "@/components/splash-screen"
 import "./globals.css"
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="rn" className={`${geistSans.variable} ${geistMono.variable} bg-background`}>
       <body className="bg-background font-sans text-foreground antialiased">
+        <SplashScreen />
         {children}
         <VisitTracker />
         <ServiceWorkerRegister />

@@ -18,6 +18,7 @@ import { HeaderMessagesButton } from "@/components/header-messages-button"
 import { MemberSignup } from "@/components/member-signup"
 import { NotifyOptin } from "@/components/notify-optin"
 import { AppPopup } from "@/components/app-popup"
+import { FeatureShowcase } from "@/components/feature-showcase"
 
 interface Country {
   name: string
@@ -585,6 +586,8 @@ export function HomePageClient({
       <main className="max-w-4xl mx-auto px-4 mt-6 space-y-8">
 
         <NotifyOptin />
+
+        <FeatureShowcase />
 
         {/* ===================================================
             CONTACT
