@@ -1,109 +1,155 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { Zap, ShieldCheck, HeartHandshake } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import useSWR from "swr"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 type Slide = {
-  image: string
-  alt: string
-  icon: typeof Zap
+  id: number
+  imageUrl: string
   title: string
-  text: string
+  caption: string
 }
 
-const SLIDES: Slide[] = [
+// Fallback slides used only if the admin hasn't added any yet.
+const FALLBACK: Slide[] = [
   {
-    image: "/showcase/sending-money.png",
-    alt: "Umuntu ariko arungika amafaranga ava Dubai akoresheje telefone",
-    icon: Zap,
+    id: -1,
+    imageUrl: "/showcase/sending-money.png",
     title: "Rungika mu maseconde",
-    text: "Ava Dubai (AED/USD) aja mu Burundi ningoga cane, ukoresheje telefone yawe gusa.",
+    caption: "Ava Dubai (AED/USD) aja mu Burundi ningoga cane, ukoresheje telefone yawe gusa.",
   },
   {
-    image: "/showcase/receiving-money.png",
-    alt: "Umukenyezi ariko arakira amafaranga kuri telefone mu Burundi",
-    icon: ShieldCheck,
+    id: -2,
+    imageUrl: "/showcase/receiving-money.png",
     title: "Amahera yawe arinzwe",
-    text: "Buri kurungika kwizewe kandi kurindiwe. Uraronka integuza igihe amahera ashitse.",
+    caption: "Buri kurungika kwizewe kandi kurindiwe. Uraronka integuza igihe amahera ashitse.",
   },
   {
-    image: "/showcase/family-support.png",
-    alt: "Umuryango w'abarundi bakinye baraba amafaranga baronse kuri telefone",
-    icon: HeartHandshake,
+    id: -3,
+    imageUrl: "/showcase/family-support.png",
     title: "Ushigikira abo ukunda",
-    text: "Fasha umuryango wawe n'abagenzi bawe aho bari hose, mu Burundi no mu bindi bihugu vya Afrika.",
+    caption: "Fasha umuryango wawe n'abagenzi bawe aho bari hose, mu Burundi no mu bindi bihugu vya Afrika.",
   },
 ]
 
-export function FeatureShowcase() {
-  const ref = useRef<HTMLElement | null>(null)
-  const [visible, setVisible] = useState(false)
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const AUTO_MS = 2600 // each slide shows ~2.6s
 
+export function FeatureShowcase() {
+  const { data } = useSWR<{ slides: Slide[] }>("/api/showcase", fetcher, {
+    revalidateOnFocus: false,
+  })
+
+  const slides = data?.slides && data.slides.length > 0 ? data.slides : FALLBACK
+  const count = slides.length
+
+  const [index, setIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const touchX = useRef<number | null>(null)
+
+  const go = useCallback(
+    (next: number) => {
+      setIndex((_) => ((next % count) + count) % count)
+    },
+    [count],
+  )
+
+  // Auto-advance every AUTO_MS unless paused or only one slide.
   useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) {
-            setVisible(true)
-            io.disconnect()
-          }
-        }
-      },
-      { threshold: 0.15 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
+    if (paused || count <= 1) return
+    const t = setInterval(() => setIndex((i) => (i + 1) % count), AUTO_MS)
+    return () => clearInterval(t)
+  }, [paused, count])
+
+  // Keep index valid if the slide count changes.
+  useEffect(() => {
+    if (index > count - 1) setIndex(0)
+  }, [count, index])
+
+  function onTouchStart(e: React.TouchEvent) {
+    touchX.current = e.touches[0].clientX
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    if (touchX.current == null) return
+    const dx = e.changedTouches[0].clientX - touchX.current
+    if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1))
+    touchX.current = null
+  }
 
   return (
-    <section ref={ref} aria-label="Ico app ikora" className="py-2">
-      <div className="mb-6 text-center">
+    <section aria-label="Ico app ikora" className="py-2">
+      <div className="mb-5 text-center">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">Billy Fast Transfer</p>
-        <h2 className="mt-2 text-balance text-2xl font-black text-white sm:text-3xl">
-          Amahera yawe, inshingano zacu
-        </h2>
+        <h2 className="mt-2 text-balance text-2xl font-black text-white sm:text-3xl">Amahera yawe, inshingano zacu</h2>
         <p className="mx-auto mt-2 max-w-md text-pretty text-sm leading-relaxed text-slate-400">
           Twegereza amahera yawe abo ukunda mu buryo bwihuse, bworoshe kandi bwizewe.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {SLIDES.map((s, i) => {
-          const Icon = s.icon
-          return (
-            <article
-              key={s.title}
-              className={`group relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-lg ${
-                visible ? "reveal" : "opacity-0"
-              }`}
-              style={visible ? { animationDelay: `${i * 0.15}s` } : undefined}
-            >
-              <div className="relative aspect-[4/5] w-full overflow-hidden">
+      <div
+        className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 shadow-xl"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Sliding track: moves sideways by index */}
+        <div
+          className="flex transition-transform duration-700 ease-out"
+          style={{ transform: `translateX(-${index * 100}%)` }}
+        >
+          {slides.map((s) => (
+            <article key={s.id} className="relative w-full flex-shrink-0">
+              <div className="relative aspect-[4/5] w-full overflow-hidden sm:aspect-[16/10]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={s.image || "/placeholder.svg"}
-                  alt={s.alt}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
+                <img src={s.imageUrl || "/placeholder.svg"} alt={s.title} className="h-full w-full object-cover" />
                 <div
                   aria-hidden
                   className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"
                 />
-                <div className="absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/90 shadow-lg backdrop-blur">
-                  <Icon className="h-5 w-5 text-white" />
-                </div>
               </div>
-
-              <div className="absolute inset-x-0 bottom-0 p-4">
-                <h3 className="text-lg font-black text-white text-balance">{s.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-slate-300">{s.text}</p>
+              <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
+                <h3 className="text-balance text-xl font-black text-white sm:text-2xl">{s.title}</h3>
+                {s.caption ? (
+                  <p className="mt-1.5 max-w-lg text-pretty text-sm leading-relaxed text-slate-200">{s.caption}</p>
+                ) : null}
               </div>
             </article>
-          )
-        })}
+          ))}
+        </div>
+
+        {count > 1 ? (
+          <>
+            <button
+              onClick={() => go(index - 1)}
+              aria-label="Isubira inyuma"
+              className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-950/60 p-2 text-white backdrop-blur transition hover:bg-slate-950/90"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => go(index + 1)}
+              aria-label="Ija imbere"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-950/60 p-2 text-white backdrop-blur transition hover:bg-slate-950/90"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+
+            <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1.5">
+              {slides.map((s, i) => (
+                <button
+                  key={s.id}
+                  onClick={() => go(i)}
+                  aria-label={`Ishusho ${i + 1}`}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === index ? "w-6 bg-emerald-400" : "w-1.5 bg-white/50 hover:bg-white/80"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
     </section>
   )

@@ -131,6 +131,19 @@ export const appPopup = pgTable("app_popup", {
 })
 export type AppPopup = typeof appPopup.$inferSelect
 
+// Showcase slides: the sliding image + words carousel on the home page, fully
+// managed from the admin (add / edit / delete, with optional AI image editing).
+export const showcaseSlides = pgTable("showcase_slides", {
+  id: serial("id").primaryKey(),
+  imageUrl: text("image_url").notNull(), // data-URL or link
+  title: text("title").notNull().default(""),
+  caption: text("caption").notNull().default(""),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type ShowcaseSlide = typeof showcaseSlides.$inferSelect
+
 // Single-row (id=1) VAPID keypair for Web Push.
 export const pushConfig = pgTable("push_config", {
   id: integer("id").primaryKey().default(1),
