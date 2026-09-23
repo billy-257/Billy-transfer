@@ -537,9 +537,9 @@ export function HomePageClient({
             className="w-12 h-12 rounded-full border-2 border-red-500 overflow-hidden shadow-md bg-slate-800 flex-shrink-0 block transition hover:border-red-300"
           >
             <img
-              src="/billy-owner.png"
-              alt="Uwurungika"
-              className="w-full h-full object-cover object-top"
+              src="/brand/iwacu-pay-logo.jpg"
+              alt="IWACU PAY"
+              className="w-full h-full object-cover"
             />
           </a>
 

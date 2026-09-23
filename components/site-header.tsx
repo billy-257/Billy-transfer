@@ -19,11 +19,11 @@ export function SiteHeader({ brandName, tagline, phone, callLabel }: Props) {
           className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-500 bg-slate-800 transition hover:border-emerald-400"
         >
           <Image
-            src="/billy-owner.png"
+            src="/brand/iwacu-pay-logo.jpg"
             alt={brandName}
             width={48}
             height={48}
-            className="h-full w-full object-cover object-top"
+            className="h-full w-full object-cover"
             priority
           />
         </Link>
