@@ -3,6 +3,7 @@ import { desc, eq, inArray } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { posts, postLikes, postComments, users } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth"
+import { getFriendIds, notifyUser } from "@/lib/social"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -42,6 +43,13 @@ export async function POST(req: Request) {
   const img = typeof imageUrl === "string" ? imageUrl : null
   if (!img && !cap) return NextResponse.json({ ok: false, error: "Andika ijambo canke wongeremwo ishusho." }, { status: 400 })
   const [row] = await db.insert(posts).values({ userId: me.id, imageUrl: img, caption: cap }).returning()
+
+  // Let friends know a new photo/post was shared.
+  const friendIds = await getFriendIds(me.id)
+  await Promise.all(
+    friendIds.map((fid) => notifyUser(fid, "post", `${me.displayName} yashize ikintu gishasha.`, "/?hub=1")),
+  )
+
   return NextResponse.json({ ok: true, post: row })
 }
 
