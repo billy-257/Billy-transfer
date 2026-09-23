@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, DollarSign, LayoutList, Users, MessageSquare, Bell, Sparkles, Contact, Megaphone, MonitorSmartphone, Images } from "lucide-react"
+import { LogOut, DollarSign, LayoutList, Users, MessageSquare, Bell, Sparkles, Contact, Megaphone, MonitorSmartphone, Images, UserCheck } from "lucide-react"
 import { logout } from "@/app/admin/actions"
 import { RateEditor } from "@/components/admin/rate-editor"
 import { ContentEditor } from "@/components/admin/content-editor"
@@ -9,6 +9,7 @@ import { VisitorsRoom } from "@/components/admin/visitors-room"
 import { InboxRoom } from "@/components/admin/inbox-room"
 import { AiIdeasRoom } from "@/components/admin/ai-ideas-room"
 import { MembersRoom } from "@/components/admin/members-room"
+import { RegisteredUsersRoom } from "@/components/admin/registered-users-room"
 import { AnnounceRoom } from "@/components/admin/announce-room"
 import { PopupEditor } from "@/components/admin/popup-editor"
 import { ShowcaseManager } from "@/components/admin/showcase-manager"
@@ -16,7 +17,7 @@ import { enablePush } from "@/lib/push-client"
 import type { SiteContent } from "@/lib/content-types"
 import type { VisitStats } from "@/lib/admin-data"
 
-type Tab = "rates" | "content" | "visitors" | "inbox" | "ai" | "members" | "announce" | "popup" | "showcase"
+type Tab = "rates" | "content" | "visitors" | "inbox" | "ai" | "members" | "announce" | "popup" | "showcase" | "registered"
 
 type Props = {
   usdMobileRate: number
@@ -66,9 +67,12 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
         </p>
       ) : null}
 
-      <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900 p-1 sm:grid-cols-4 lg:grid-cols-9">
+      <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900 p-1 sm:grid-cols-4 lg:grid-cols-10">
         <button onClick={() => setTab("inbox")} className={tabBtn("inbox", tab === "inbox")}>
           <MessageSquare className="h-4 w-4" /> Ubutumwa
+        </button>
+        <button onClick={() => setTab("registered")} className={tabBtn("registered", tab === "registered")}>
+          <UserCheck className="h-4 w-4" /> Abiyandikishe
         </button>
         <button onClick={() => setTab("announce")} className={tabBtn("announce", tab === "announce")}>
           <Megaphone className="h-4 w-4" /> Amatangazo
@@ -98,6 +102,8 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
 
       {tab === "inbox" ? (
         <InboxRoom />
+      ) : tab === "registered" ? (
+        <RegisteredUsersRoom />
       ) : tab === "announce" ? (
         <AnnounceRoom />
       ) : tab === "popup" ? (

@@ -1,6 +1,7 @@
 import { getRateSettings } from "@/lib/rates"
 import { getSiteContent } from "@/lib/content"
 import { HomePageClient } from "@/components/client"
+import { AuthGate } from "@/components/social/auth-gate"
 
 export const dynamic = "force-dynamic"
 
@@ -11,9 +12,11 @@ export default async function HomePage() {
   ])
 
   return (
-    <HomePageClient
-      rates={rates}
-      content={content}
-    />
+    <AuthGate>
+      <HomePageClient
+        rates={rates}
+        content={content}
+      />
+    </AuthGate>
   )
 }

@@ -9,11 +9,17 @@ export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
   try {
-    const { username, phone, password, displayName } = await req.json()
+    const { username, phone, password, displayName, avatarUrl, location } = await req.json()
     const u = String(username ?? "").trim().toLowerCase()
     const p = String(phone ?? "").trim()
     const pw = String(password ?? "")
     const name = String(displayName ?? "").trim() || u
+    const loc = String(location ?? "").trim().slice(0, 120) || null
+    // Only accept a reasonably-sized inline image (compressed on the client).
+    const avatar =
+      typeof avatarUrl === "string" && avatarUrl.startsWith("data:image/") && avatarUrl.length < 600_000
+        ? avatarUrl
+        : null
 
     if (!/^[a-z0-9_]{3,20}$/.test(u)) {
       return NextResponse.json({ ok: false, error: "Izina ry'ukoresha ribe n'inyuguti 3-20 (a-z, 0-9, _)." }, { status: 400 })
@@ -32,13 +38,21 @@ export async function POST(req: Request) {
 
     const [row] = await db
       .insert(users)
-      .values({ username: u, phone: p, displayName: name, passwordHash: hashPassword(pw) })
+      .values({ username: u, phone: p, displayName: name, passwordHash: hashPassword(pw), avatarUrl: avatar, location: loc })
       .returning()
 
     await createUserSession(row.id)
     return NextResponse.json({
       ok: true,
-      user: { id: row.id, username: row.username, phone: row.phone, displayName: row.displayName, avatarUrl: row.avatarUrl, isAdmin: row.isAdmin },
+      user: {
+        id: row.id,
+        username: row.username,
+        phone: row.phone,
+        displayName: row.displayName,
+        avatarUrl: row.avatarUrl,
+        location: row.location,
+        isAdmin: row.isAdmin,
+      },
     })
   } catch (err) {
     console.log("[v0] register failed:", (err as Error).message)

@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Keep the page locked to the device width so it never looks zoomed-in
+   and no content spills off the right edge on phones. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 @theme inline {
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
