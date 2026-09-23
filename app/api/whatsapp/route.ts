@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server"
-import { getOrCreateConversation, addMessage, getThread } from "@/lib/inbox"
 import { generateKirundiReply, fallbackKirundiReply } from "@/lib/ai-reply"
-import { sendWhatsappText } from "@/lib/whatsapp"
+import { appendTurn, getThread, sendWhatsAppText, alreadyHandled } from "@/lib/whatsapp"
 
-export const runtime = "nodejs"
-// A model reply can take several seconds; keep the function alive long enough.
-export const maxDuration = 60
+export const dynamic = "force-dynamic"
+// Allow the AI a little time to answer before the platform times out.
+export const maxDuration = 30
 
-// --- Webhook verification (Meta calls this once when you save the webhook URL) ---
+// --- Webhook verification (Meta calls this once when you set the webhook URL) ---
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const mode = url.searchParams.get("hub.mode")
@@ -15,14 +14,10 @@ export async function GET(req: Request) {
   const challenge = url.searchParams.get("hub.challenge")
 
   if (mode === "subscribe" && token && token === process.env.WHATSAPP_VERIFY_TOKEN) {
-    // Meta expects the raw challenge string echoed back.
-    return new Response(challenge ?? "", { status: 200 })
+    return new NextResponse(challenge ?? "", { status: 200 })
   }
-  return new Response("Forbidden", { status: 403 })
+  return new NextResponse("Forbidden", { status: 403 })
 }
-
-// Meta may retry, so ignore messages we've already handled in this instance.
-const handled = new Set<string>()
 
 // --- Incoming messages ---
 export async function POST(req: Request) {
@@ -33,57 +28,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true })
   }
 
-  // Always ack fast; do the work but never throw back to Meta (avoids retries storms).
   try {
-    const entry = payload?.entry?.[0]
-    const change = entry?.changes?.[0]
-    const value = change?.value
-    const message = value?.messages?.[0]
+    const entries = payload?.entry ?? []
+    for (const entry of entries) {
+      for (const change of entry?.changes ?? []) {
+        const value = change?.value
+        const messages = value?.messages ?? []
+        const contactName: string | undefined = value?.contacts?.[0]?.profile?.name
 
-    // Delivery/read status callbacks have no `messages` — just acknowledge them.
-    if (!message) return NextResponse.json({ ok: true })
+        for (const message of messages) {
+          // Only handle text messages; ignore statuses/reactions/etc.
+          if (message?.type !== "text" || !message?.text?.body) continue
+          if (alreadyHandled(message.id)) continue
 
-    // Only handle text messages; politely handle other types.
-    const from: string = message.from // customer's number, E.164 without '+'
-    const messageId: string = message.id
-    if (handled.has(messageId)) return NextResponse.json({ ok: true })
-    handled.add(messageId)
-    if (handled.size > 500) handled.clear()
+          const from: string = message.from // sender's phone number (wa_id)
+          const text: string = message.text.body
 
-    const profileName: string | undefined = value?.contacts?.[0]?.profile?.name
-    let text = ""
-    if (message.type === "text") {
-      text = message.text?.body ?? ""
-    } else {
-      text = `[${message.type}]`
-    }
+          appendTurn(from, "client", text)
+          const thread = getThread(from)
 
-    // Log into the SAME admin inbox so Billy sees WhatsApp chats and can take over.
-    const clientId = `wa:${from}`
-    const convo = await getOrCreateConversation(clientId, profileName, `+${from}`)
-    await addMessage(convo.id, "client", text || `[${message.type}]`)
+          let reply = await generateKirundiReply(thread, contactName ?? null)
+          if (!reply) reply = await fallbackKirundiReply(contactName ?? null, text, thread)
 
-    // Non-text messages: ask for text, don't run the model.
-    if (message.type !== "text" || !text.trim()) {
-      const note =
-        "Muraho! Kubw'ikibazo canke kurungika amafaranga, andika ubutumwa mu majambo (text) turabishure. Murakoze!"
-      await addMessage(convo.id, "admin", note)
-      await sendWhatsappText(from, note)
-      return NextResponse.json({ ok: true })
-    }
-
-    // Generate the customer-care reply in Kirundi with live rates.
-    const thread = await getThread(convo.id)
-    let reply = await generateKirundiReply(thread, convo.name ?? profileName)
-    if (!reply) reply = await fallbackKirundiReply(convo.name ?? profileName, text, thread)
-
-    if (reply) {
-      await addMessage(convo.id, "admin", reply)
-      await sendWhatsappText(from, reply)
+          appendTurn(from, "admin", reply)
+          await sendWhatsAppText(from, reply)
+        }
+      }
     }
   } catch (err) {
     console.log("[v0] WhatsApp webhook error:", (err as Error).message)
   }
 
+  // Always ack so Meta doesn't keep retrying.
   return NextResponse.json({ ok: true })
 }

@@ -1,31 +1,63 @@
 import "server-only"
+import type { ChatMessage } from "@/lib/db/schema"
 
-// WhatsApp Business Cloud API (Meta) helper for "Billy Transfer".
-// Free tier: Meta gives 1,000 service conversations/month at no cost.
-// Required environment variables (set after creating a Meta WhatsApp Business app):
-//   WHATSAPP_ACCESS_TOKEN     - permanent access token for the WhatsApp system user
-//   WHATSAPP_PHONE_NUMBER_ID  - the Phone Number ID of your WhatsApp sender
-//   WHATSAPP_VERIFY_TOKEN     - any secret string you choose; used to verify the webhook
-
+// WhatsApp Cloud API config (set these in the project env vars).
 const GRAPH_VERSION = "v21.0"
+const TOKEN = process.env.WHATSAPP_TOKEN
+const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID
 
 export function whatsappConfigured() {
-  return Boolean(process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID)
+  return Boolean(TOKEN && PHONE_NUMBER_ID)
 }
 
-// Sends a plain-text WhatsApp message to a customer's number (E.164 without '+').
-export async function sendWhatsappText(to: string, body: string): Promise<{ ok: boolean; error?: string }> {
-  const token = process.env.WHATSAPP_ACCESS_TOKEN
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-  if (!token || !phoneNumberId) {
-    return { ok: false, error: "WhatsApp not configured" }
-  }
+/**
+ * Short-lived per-sender conversation memory so the AI has context.
+ * Serverless instances may reset this — that's acceptable for a simple bot;
+ * it just means the model occasionally starts a thread fresh.
+ */
+const MAX_TURNS = 16
+const store = new Map<string, { sender: "client" | "admin"; body: string }[]>()
 
+export function getThread(phone: string): ChatMessage[] {
+  const turns = store.get(phone) ?? []
+  // Map lightweight turns onto the ChatMessage shape the AI helper expects.
+  return turns.map((t, i) => ({
+    id: i,
+    conversationId: 0,
+    sender: t.sender,
+    body: t.body,
+    createdAt: new Date(),
+  })) as ChatMessage[]
+}
+
+export function appendTurn(phone: string, sender: "client" | "admin", body: string) {
+  const turns = store.get(phone) ?? []
+  turns.push({ sender, body })
+  store.set(phone, turns.slice(-MAX_TURNS))
+}
+
+// De-duplicate WhatsApp webhook retries (Meta re-delivers if we're slow).
+const seen = new Map<string, number>()
+export function alreadyHandled(messageId: string): boolean {
+  const now = Date.now()
+  // Drop entries older than 10 minutes to keep the map small.
+  for (const [id, at] of seen) if (now - at > 600_000) seen.delete(id)
+  if (seen.has(messageId)) return true
+  seen.set(messageId, now)
+  return false
+}
+
+// Sends a plain-text WhatsApp message back to the user.
+export async function sendWhatsAppText(to: string, body: string): Promise<boolean> {
+  if (!whatsappConfigured()) {
+    console.log("[v0] WhatsApp not configured; skipping send")
+    return false
+  }
   try {
-    const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`, {
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${PHONE_NUMBER_ID}/messages`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -36,16 +68,13 @@ export async function sendWhatsappText(to: string, body: string): Promise<{ ok: 
         text: { preview_url: false, body: body.slice(0, 4096) },
       }),
     })
-
     if (!res.ok) {
-      const detail = await res.text()
-      console.log("[v0] WhatsApp send failed:", res.status, detail.slice(0, 300))
-      return { ok: false, error: `${res.status}: ${detail.slice(0, 200)}` }
+      console.log("[v0] WhatsApp send failed:", res.status, (await res.text()).slice(0, 300))
+      return false
     }
-    return { ok: true }
+    return true
   } catch (err) {
-    const message = (err as Error).message ?? String(err)
-    console.log("[v0] WhatsApp send error:", message)
-    return { ok: false, error: message }
+    console.log("[v0] WhatsApp send error:", (err as Error).message)
+    return false
   }
 }
