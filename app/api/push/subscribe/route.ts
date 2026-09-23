@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { pushSubscriptions } from "@/lib/db/schema"
 import { getPublicKey } from "@/lib/push"
 import { isAuthenticated } from "@/lib/admin-auth"
+import { getCurrentUser } from "@/lib/auth"
 
 export const runtime = "nodejs"
 
@@ -30,6 +31,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false }, { status: 400 })
     }
 
+    // Link this subscription to the logged-in social user (if any) so we can
+    // deliver targeted notifications (messages, friend requests, likes...).
+    const currentUser = await getCurrentUser()
+    const userId = currentUser?.id ?? null
+
     const existing = await db
       .select()
       .from(pushSubscriptions)
@@ -39,12 +45,13 @@ export async function POST(req: Request) {
     if (existing[0]) {
       await db
         .update(pushSubscriptions)
-        .set({ role, clientId: role === "client" ? String(clientId ?? "").slice(0, 100) : null, p256dh, auth })
+        .set({ role, clientId: role === "client" ? String(clientId ?? "").slice(0, 100) : null, userId, p256dh, auth })
         .where(eq(pushSubscriptions.id, existing[0].id))
     } else {
       await db.insert(pushSubscriptions).values({
         role,
         clientId: role === "client" ? String(clientId ?? "").slice(0, 100) : null,
+        userId,
         endpoint,
         p256dh,
         auth,

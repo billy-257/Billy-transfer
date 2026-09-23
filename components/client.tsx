@@ -19,6 +19,7 @@ import { MemberSignup } from "@/components/member-signup"
 import { NotifyOptin } from "@/components/notify-optin"
 import { AppPopup } from "@/components/app-popup"
 import { FeatureShowcase } from "@/components/feature-showcase"
+import { SocialHub } from "@/components/social/social-hub"
 
 interface Country {
   name: string
@@ -557,6 +558,8 @@ export function HomePageClient({
         </div>
 
         <div className="flex items-center gap-2">
+          <SocialHub />
+
           <a
             href="/room"
             aria-label="Aho kuganirira - injira mu kiganiro c'abanywanyi"
