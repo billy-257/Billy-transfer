@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ArrowRightLeft } from "lucide-react"
+import Image from "next/image"
 
 // Opening animation shown once per app session with the brand promise:
 // "AMAHERA YAWE INSHINGANO ZACU" (Your money, our responsibility).
@@ -66,14 +66,21 @@ export function SplashScreen() {
 
       {/* logo with pulsing rings */}
       <div className="relative mb-8 flex items-center justify-center">
-        <span aria-hidden className="splash-ring absolute h-24 w-24 rounded-full border border-emerald-400/40" />
+        <span aria-hidden className="splash-ring absolute h-40 w-40 rounded-full border border-emerald-400/40" />
         <span
           aria-hidden
-          className="splash-ring absolute h-24 w-24 rounded-full border border-emerald-400/30"
+          className="splash-ring absolute h-40 w-40 rounded-full border border-emerald-400/30"
           style={{ animationDelay: "0.5s" }}
         />
-        <div className="splash-logo relative flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-2xl shadow-emerald-500/30">
-          <ArrowRightLeft className="h-9 w-9 text-white" />
+        <div className="splash-logo relative h-32 w-32 overflow-hidden rounded-full shadow-2xl shadow-emerald-500/30 ring-2 ring-emerald-400/40">
+          <Image
+            src="/brand/iwacu-pay-logo.jpg"
+            alt="IWACU PAY - Faster Transfer"
+            fill
+            priority
+            sizes="128px"
+            className="object-cover"
+          />
         </div>
       </div>
 

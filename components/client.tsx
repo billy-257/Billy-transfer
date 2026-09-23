@@ -19,6 +19,7 @@ import { MemberSignup } from "@/components/member-signup"
 import { NotifyOptin } from "@/components/notify-optin"
 import { AppPopup } from "@/components/app-popup"
 import { FeatureShowcase } from "@/components/feature-showcase"
+import { SocialHub } from "@/components/social/social-hub"
 
 interface Country {
   name: string
@@ -536,9 +537,9 @@ export function HomePageClient({
             className="w-12 h-12 rounded-full border-2 border-red-500 overflow-hidden shadow-md bg-slate-800 flex-shrink-0 block transition hover:border-red-300"
           >
             <img
-              src="/billy-owner.png"
-              alt="Uwurungika"
-              className="w-full h-full object-cover object-top"
+              src="/brand/iwacu-pay-logo.jpg"
+              alt="IWACU PAY"
+              className="w-full h-full object-cover"
             />
           </a>
 
@@ -557,6 +558,8 @@ export function HomePageClient({
         </div>
 
         <div className="flex items-center gap-2">
+          <SocialHub />
+
           <a
             href="/room"
             aria-label="Aho kuganirira - injira mu kiganiro c'abanywanyi"

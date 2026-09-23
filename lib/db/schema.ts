@@ -70,6 +70,7 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   id: serial("id").primaryKey(),
   role: text("role").notNull(), // 'admin' | 'client'
   clientId: text("client_id"),
+  userId: integer("user_id"), // links a subscription to a registered social user
   endpoint: text("endpoint").notNull().unique(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
@@ -143,6 +144,81 @@ export const showcaseSlides = pgTable("showcase_slides", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 export type ShowcaseSlide = typeof showcaseSlides.$inferSelect
+
+// ===================== SOCIAL NETWORK =====================
+
+// Registered social users (username + phone + password, no verification codes).
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  phone: text("phone").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  avatarUrl: text("avatar_url"),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type User = typeof users.$inferSelect
+
+// Friend relationships. One row per pair; status pending until accepted.
+export const friendships = pgTable("friendships", {
+  id: serial("id").primaryKey(),
+  requesterId: integer("requester_id").notNull(),
+  addresseeId: integer("addressee_id").notNull(),
+  status: text("status").notNull().default("pending"), // 'pending' | 'accepted'
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type Friendship = typeof friendships.$inferSelect
+
+// 1:1 direct messages between users.
+export const directMessages = pgTable("direct_messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull(),
+  recipientId: integer("recipient_id").notNull(),
+  body: text("body").notNull(),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type DirectMessage = typeof directMessages.$inferSelect
+
+// Photo feed posts.
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  imageUrl: text("image_url"),
+  caption: text("caption").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type Post = typeof posts.$inferSelect
+
+export const postLikes = pgTable("post_likes", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  userId: integer("user_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type PostLike = typeof postLikes.$inferSelect
+
+export const postComments = pgTable("post_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  userId: integer("user_id").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type PostComment = typeof postComments.$inferSelect
+
+// In-app notification center entries.
+export const appNotifications = pgTable("app_notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // recipient
+  type: text("type").notNull(), // 'friend_request' | 'friend_accept' | 'message' | 'like' | 'comment'
+  body: text("body").notNull(),
+  link: text("link"),
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export type AppNotification = typeof appNotifications.$inferSelect
 
 // Single-row (id=1) VAPID keypair for Web Push.
 export const pushConfig = pgTable("push_config", {
