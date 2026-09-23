@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { Loader2, UserPlus, LogIn } from "lucide-react"
+import { useRef, useState } from "react"
+import { Loader2, UserPlus, LogIn, Camera } from "lucide-react"
 import { enablePush } from "@/lib/push-client"
-import type { SocialUser } from "@/components/social/types"
+import { compressImage, type SocialUser } from "@/components/social/types"
 
 export function AuthForms({ onAuthed }: { onAuthed: (u: SocialUser) => void }) {
   const [mode, setMode] = useState<"login" | "register">("login")
@@ -15,8 +15,16 @@ export function AuthForms({ onAuthed }: { onAuthed: (u: SocialUser) => void }) {
   const [username, setUsername] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
+  const [location, setLocation] = useState("")
+  const [avatar, setAvatar] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   // login field
   const [identifier, setIdentifier] = useState("")
+
+  async function pickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) setAvatar(await compressImage(file, 320))
+  }
 
   async function submit() {
     setBusy(true)
@@ -27,7 +35,7 @@ export function AuthForms({ onAuthed }: { onAuthed: (u: SocialUser) => void }) {
           ? await fetch("/api/auth/register", {
               method: "POST",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify({ displayName, username, phone, password }),
+              body: JSON.stringify({ displayName, username, phone, password, location, avatarUrl: avatar }),
             })
           : await fetch("/api/auth/login", {
               method: "POST",
@@ -80,9 +88,30 @@ export function AuthForms({ onAuthed }: { onAuthed: (u: SocialUser) => void }) {
       <div className="space-y-3">
         {mode === "register" ? (
           <>
+            {/* profile photo picker */}
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-emerald-500 bg-slate-800"
+                aria-label="Shira ifoto yawe"
+              >
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatar || "/placeholder.svg"} alt="ifoto" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-slate-400">
+                    <Camera className="h-6 w-6" />
+                  </span>
+                )}
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickAvatar} />
+              <span className="text-[11px] text-slate-400">Shira ifoto yawe</span>
+            </div>
             <input className={input} placeholder="Izina rizoboneka (display name)" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
             <input className={input} placeholder="Username (a-z, 0-9, _)" value={username} onChange={(e) => setUsername(e.target.value)} />
             <input className={input} placeholder="Inomero ya telefone (+9715...)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <input className={input} placeholder="Aho uba (igihugu / igisagara)" value={location} onChange={(e) => setLocation(e.target.value)} />
             <input className={input} type="password" placeholder="Ijambo ry'ibanga" value={password} onChange={(e) => setPassword(e.target.value)} />
           </>
         ) : (

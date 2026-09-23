@@ -4,6 +4,7 @@ export type SocialUser = {
   phone?: string
   displayName: string
   avatarUrl: string | null
+  location?: string | null
   isAdmin?: boolean
 }
 
