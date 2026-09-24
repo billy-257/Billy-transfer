@@ -37,6 +37,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="rn" className={`${geistSans.variable} ${geistMono.variable} bg-background`}>
       <body className="bg-background font-sans text-foreground antialiased">
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('billy-theme');if(t==='light'){document.documentElement.classList.add('light');document.documentElement.style.colorScheme='light';}}catch(e){}",
+          }}
+        />
         <SplashScreen />
         {children}
         <VisitTracker />

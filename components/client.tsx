@@ -25,6 +25,7 @@ interface Country {
   name: string
   code?: string
   flag?: string
+  ratePer10Aed?: number
 }
 
 interface HomePageClientProps {
@@ -66,7 +67,7 @@ interface HomePageClientProps {
   }
 }
 
-const DEFAULT_COUNTRIES: Required<Country>[] = [
+const DEFAULT_COUNTRIES: { name: string; code: string; flag: string }[] = [
   { name: "Uganda", code: "UGX", flag: "🇺🇬" },
   { name: "Tanzania", code: "TSH", flag: "🇹🇿" },
   { name: "Kenya", code: "KSH", flag: "🇰🇪" },
@@ -109,8 +110,9 @@ export function HomePageClient({
     rates.usdMobileRate || 5982
   )
 
-  // Bank rate is set by the admin and is separate from the live P2P (mobile) rate.
-  const bankRate = Number(rates.usdBankRate || 5920)
+  // Bank payout now tracks the live rate but 20 BIF lower, so it never needs a
+  // separate admin value.
+  const BANK_RATE_DISCOUNT = 20
 
   // Which payout the visitor is pricing: mobile (live P2P), bank (fixed rate),
   // or COOPEC FENACOBU (30 BIF below the live rate + 5 AED on every fee tier).
@@ -231,7 +233,7 @@ export function HomePageClient({
   // Bank uses its own fixed rate; COOPEC is 30 below live; mobile uses live P2P.
   const activeUsdRate =
     transferType === "bank"
-      ? bankRate
+      ? Math.max(0, p2pRate - BANK_RATE_DISCOUNT)
       : transferType === "coopec"
       ? Math.max(0, p2pRate - COOPEC_RATE_DISCOUNT)
       : p2pRate
@@ -351,24 +353,41 @@ export function HomePageClient({
     content.countries &&
     content.countries.length > 0
       ? content.countries.map(
-          (country, index) => ({
-            name:
-              country.name ||
-              DEFAULT_COUNTRIES[index]?.name ||
-              "Country",
-
-            code:
+          (country, index) => {
+            const code =
               country.code ||
               DEFAULT_COUNTRIES[index]?.code ||
-              `C${index}`,
+              `C${index}`
 
-            flag:
-              country.flag ||
-              DEFAULT_COUNTRIES[index]?.flag ||
-              "🌍",
-          })
+            return {
+              name:
+                country.name ||
+                DEFAULT_COUNTRIES[index]?.name ||
+                "Country",
+
+              code,
+
+              flag:
+                country.flag ||
+                DEFAULT_COUNTRIES[index]?.flag ||
+                "🌍",
+
+              // Admin-editable rate (per 10 AED). Falls back to the built-in map.
+              ratePer10Aed:
+                Number(country.ratePer10Aed) ||
+                COUNTRY_RATES[code] ||
+                1000,
+            }
+          }
         )
-      : DEFAULT_COUNTRIES
+      : DEFAULT_COUNTRIES.map((c) => ({
+          ...c,
+          ratePer10Aed: COUNTRY_RATES[c.code] || 1000,
+        }))
+
+  // Quick lookup of the (admin-editable) rate for each country code.
+  const countryRateMap: Record<string, number> = {}
+  for (const c of countries) countryRateMap[c.code] = c.ratePer10Aed
 
   function getCountryPayout(
     currency: string,
@@ -382,7 +401,9 @@ export function HomePageClient({
     }
 
     const rate10AED =
-      COUNTRY_RATES[currency] || 1000
+      countryRateMap[currency] ||
+      COUNTRY_RATES[currency] ||
+      1000
 
     const ratePerAED =
       rate10AED / 10
@@ -560,15 +581,6 @@ export function HomePageClient({
         <div className="flex flex-wrap items-center justify-end gap-2">
           <SocialHub />
 
-          <a
-            href="/room"
-            aria-label="Aho kuganirira - injira mu kiganiro c'abanywanyi"
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-full text-xs font-bold text-white transition shadow"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Aho kuganirira</span>
-          </a>
-
           <HeaderMessagesButton />
 
           <button
@@ -598,7 +610,7 @@ export function HomePageClient({
 
         <div className="grid md:grid-cols-2 gap-4">
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-3">
 
             <div className="flex items-center space-x-3">
 
@@ -610,12 +622,18 @@ export function HomePageClient({
                     "Botim / DuPay / Direct:"}
                 </p>
 
-                <p className="text-sm font-bold text-white">
+                <p className="flex items-center gap-1.5 text-sm font-bold text-white">
                   {phone}
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" aria-hidden />
                 </p>
               </div>
 
             </div>
+
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-400 flex-shrink-0">
+              <ShieldCheck className="w-3 h-3" />
+              Admin yemejwe
+            </span>
 
           </div>
 
@@ -715,7 +733,7 @@ export function HomePageClient({
               ) : (
                 <span className="inline-flex items-center gap-2 rounded-full bg-sky-500/10 border border-sky-500/30 px-3 py-1.5 text-sky-400 font-bold">
                   <Building2 className="h-3.5 w-3.5" />
-                  IGICIRO CA BANKI
+                  IGICIRO CA BANKI (-20)
                 </span>
               )}
 

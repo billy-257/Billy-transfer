@@ -1,5 +1,5 @@
 import "server-only"
-import { eq, sql } from "drizzle-orm"
+import { eq, inArray, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { presence } from "@/lib/db/schema"
 
@@ -20,6 +20,15 @@ export async function isAdminOnline(): Promise<boolean> {
   const last = rows[0]?.lastSeen
   if (!last) return false
   return Date.now() - new Date(last).getTime() < ONLINE_WINDOW_MS
+}
+
+// Last-seen timestamps (ISO) for a set of presence ids, e.g. "u12" for user 12.
+export async function getLastSeenMap(ids: string[]): Promise<Record<string, string>> {
+  if (ids.length === 0) return {}
+  const rows = await db.select().from(presence).where(inArray(presence.id, ids))
+  const map: Record<string, string> = {}
+  for (const r of rows) map[r.id] = new Date(r.lastSeen).toISOString()
+  return map
 }
 
 // Return the set of client ids seen within the online window.

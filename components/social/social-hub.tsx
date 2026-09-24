@@ -1,27 +1,51 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import useSWR from "swr"
-import { MessageCircle, UserPlus, Bell, X, LogOut, ShieldCheck, Images, Users } from "lucide-react"
+import { Home, MessageCircle, Users, Bell, Settings, X, ShieldCheck } from "lucide-react"
 import { socialFetcher, type SocialUser } from "@/components/social/types"
 import { AuthForms } from "@/components/social/auth-forms"
 import { FeedPanel } from "@/components/social/feed-panel"
 import { FriendsPanel } from "@/components/social/friends-panel"
 import { ChatPanel } from "@/components/social/chat-panel"
 import { NotificationsPanel } from "@/components/social/notifications-panel"
+import { SettingsPanel } from "@/components/social/settings-panel"
 
-type Tab = "feed" | "chat" | "friends" | "notifications"
+type Tab = "feed" | "chat" | "friends" | "notifications" | "settings"
+
+function Badge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-black text-white shadow">
+      {count > 9 ? "9+" : count}
+    </span>
+  )
+}
 
 export function SocialHub() {
   const { data: meData, mutate: mutateMe } = useSWR("/api/auth/me", socialFetcher)
   const me: SocialUser | null = meData?.user ?? null
 
   const { data: notifData } = useSWR(me ? "/api/notifications" : null, socialFetcher, { refreshInterval: 20000 })
-  const unread: number = notifData?.unread ?? 0
+  const unreadNotifs: number = notifData?.unread ?? 0
+
+  const { data: dmData } = useSWR(me ? "/api/dm/unread" : null, socialFetcher, { refreshInterval: 15000 })
+  const unreadMessages: number = dmData?.unread ?? 0
 
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>("feed")
   const [activeChatUser, setActiveChatUser] = useState<SocialUser | null>(null)
+
+  // Keep the logged-in user's "last seen" fresh while the app is open.
+  useEffect(() => {
+    if (!me) return
+    const ping = () => {
+      fetch("/api/presence/social", { method: "POST" }).catch(() => {})
+    }
+    ping()
+    const id = window.setInterval(ping, 30000)
+    return () => window.clearInterval(id)
+  }, [me])
 
   function openTo(t: Tab) {
     setTab(t)
@@ -34,31 +58,35 @@ export function SocialHub() {
     setOpen(false)
   }
 
-  const iconBtn =
-    "relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200 transition hover:border-emerald-500 hover:text-emerald-400"
+  // Big, Facebook-style top navigation icons.
+  const navBtn =
+    "relative flex h-11 w-11 items-center justify-center rounded-2xl text-slate-300 transition hover:bg-slate-800 hover:text-white"
 
-  const tabBtn = (t: Tab, active: boolean) =>
-    `flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-bold transition ${active ? "text-emerald-400" : "text-slate-400"}`
+  const tabBtn = (active: boolean) =>
+    `relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-bold transition ${active ? "text-emerald-400" : "text-slate-400"}`
 
   return (
     <>
-      {/* Top-right button cluster: Chat, Add friends, Notifications */}
-      <div className="flex items-center gap-1.5">
-        <button onClick={() => openTo("chat")} className={iconBtn} aria-label="Chat">
-          <MessageCircle className="h-4 w-4" />
+      {/* ===== Facebook-style top navigation ===== */}
+      <nav className="flex items-center gap-0.5 rounded-2xl border border-slate-800 bg-slate-900/80 px-1.5 py-1 shadow-lg backdrop-blur">
+        <button onClick={() => openTo("feed")} className={navBtn} aria-label="Amafoto (Home)">
+          <Home className="h-6 w-6" />
         </button>
-        <button onClick={() => openTo("friends")} className={iconBtn} aria-label="Ongera abagenzi">
-          <UserPlus className="h-4 w-4" />
+        <button onClick={() => openTo("friends")} className={navBtn} aria-label="Abagenzi">
+          <Users className="h-6 w-6" />
         </button>
-        <button onClick={() => openTo("notifications")} className={iconBtn} aria-label="Integuza">
-          <Bell className="h-4 w-4" />
-          {me && unread > 0 ? (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
-              {unread > 9 ? "9+" : unread}
-            </span>
-          ) : null}
+        <button onClick={() => openTo("chat")} className={navBtn} aria-label="Ubutumwa (Messenger)">
+          <MessageCircle className="h-6 w-6" />
+          {me ? <Badge count={unreadMessages} /> : null}
         </button>
-      </div>
+        <button onClick={() => openTo("notifications")} className={navBtn} aria-label="Integuza">
+          <Bell className="h-6 w-6" />
+          {me ? <Badge count={unreadNotifs} /> : null}
+        </button>
+        <button onClick={() => openTo("settings")} className={navBtn} aria-label="Igenamiterere (Settings)">
+          <Settings className="h-6 w-6" />
+        </button>
+      </nav>
 
       {open ? (
         <div className="fixed inset-0 z-[200] flex flex-col bg-slate-950 text-slate-100">
@@ -78,16 +106,9 @@ export function SocialHub() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {me ? (
-                <button onClick={logout} className="flex items-center gap-1 rounded-full border border-slate-700 px-2.5 py-1.5 text-xs font-bold text-slate-300">
-                  <LogOut className="h-3.5 w-3.5" /> Sohoka
-                </button>
-              ) : null}
-              <button onClick={() => setOpen(false)} className="rounded-full p-1.5 text-slate-300 hover:bg-slate-800" aria-label="Funga">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+            <button onClick={() => setOpen(false)} className="rounded-full p-1.5 text-slate-300 hover:bg-slate-800" aria-label="Funga">
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
           {!me ? (
@@ -110,26 +131,32 @@ export function SocialHub() {
                       setTab("chat")
                     }}
                   />
-                ) : (
+                ) : tab === "notifications" ? (
                   <NotificationsPanel />
+                ) : (
+                  <SettingsPanel me={me} onSaved={() => mutateMe()} onLogout={logout} />
                 )}
               </div>
 
               {/* bottom tab bar (hidden while inside a chat thread for full-screen chat) */}
               {!(tab === "chat" && activeChatUser) ? (
                 <div className="flex border-t border-slate-800 bg-slate-950">
-                  <button onClick={() => setTab("feed")} className={tabBtn("feed", tab === "feed")}>
-                    <Images className="h-4 w-4" /> Amafoto
+                  <button onClick={() => setTab("feed")} className={tabBtn(tab === "feed")}>
+                    <Home className="h-5 w-5" /> Amafoto
                   </button>
-                  <button onClick={() => setTab("chat")} className={tabBtn("chat", tab === "chat")}>
-                    <MessageCircle className="h-4 w-4" /> Chat
+                  <button onClick={() => setTab("friends")} className={tabBtn(tab === "friends")}>
+                    <Users className="h-5 w-5" /> Abagenzi
                   </button>
-                  <button onClick={() => setTab("friends")} className={tabBtn("friends", tab === "friends")}>
-                    <Users className="h-4 w-4" /> Abagenzi
+                  <button onClick={() => setTab("chat")} className={tabBtn(tab === "chat")}>
+                    <MessageCircle className="h-5 w-5" /> Chat
+                    <Badge count={unreadMessages} />
                   </button>
-                  <button onClick={() => setTab("notifications")} className={`${tabBtn("notifications", tab === "notifications")} relative`}>
-                    <Bell className="h-4 w-4" /> Integuza
-                    {unread > 0 ? <span className="absolute right-4 top-2 h-2 w-2 rounded-full bg-red-500" /> : null}
+                  <button onClick={() => setTab("notifications")} className={tabBtn(tab === "notifications")}>
+                    <Bell className="h-5 w-5" /> Integuza
+                    <Badge count={unreadNotifs} />
+                  </button>
+                  <button onClick={() => setTab("settings")} className={tabBtn(tab === "settings")}>
+                    <Settings className="h-5 w-5" /> Genamiterere
                   </button>
                 </div>
               ) : null}

@@ -6,6 +6,22 @@ export type SocialUser = {
   avatarUrl: string | null
   location?: string | null
   isAdmin?: boolean
+  online?: boolean
+  lastSeen?: string | null
+}
+
+// Human, Kirundi-friendly "last seen" label.
+export function lastSeenLabel(iso: string | null | undefined): string {
+  if (!iso) return "Ntiyaboneka"
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return "Ubu nyene"
+  if (min < 60) return `Haheze imunota ${min}`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `Haheze amasaha ${hr}`
+  const d = Math.floor(hr / 24)
+  if (d < 7) return `Haheze imisi ${d}`
+  return new Date(iso).toLocaleDateString()
 }
 
 export const socialFetcher = (url: string) => fetch(url).then((r) => r.json())
