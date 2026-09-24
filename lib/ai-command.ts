@@ -33,10 +33,16 @@ export type Action =
   | { kind: "setText"; field: TextField; value: string }
   | { kind: "listAdd"; field: ListField; value: string }
   | { kind: "listRemove"; field: ListField; value: string }
+  | { kind: "listRename"; field: ListField; from: string; to: string }
   | { kind: "addCountry"; country: Country }
   | { kind: "removeCountry"; code: string }
   | { kind: "addFee"; tier: FeeTier }
   | { kind: "removeFee"; maxAed: number }
+  | { kind: "setMargin"; margin: number; percent: number }
+  | { kind: "adjustRates"; delta: number }
+  | { kind: "addMethod"; code: string; method: string }
+  | { kind: "removeMethod"; code: string; method: string }
+  | { kind: "notify"; title: string; body: string }
 
 export type Interpretation = { type: "action"; action: Action } | { type: "reply"; reply: string }
 
@@ -120,8 +126,80 @@ export function interpret(command: string, ctx: { rates: RateData; content: Site
     return { type: "reply", reply: helpText(ctx) }
   }
 
+  // ---- Notify: send a push notification to all phones (free web push) ----
+  if (/\b(notify|notification|menyesha|rungikira bose|tanga itangazo rusange|push)\b/.test(lower)) {
+    const kw = ["notify", "notification", "menyesha", "rungikira bose", "tanga itangazo rusange", "push"].find((k) =>
+      lower.includes(k),
+    )!
+    let body = valueAfter(original, lower, kw)
+    if (!body || body.toLowerCase() === "rate" || body.toLowerCase() === "igiciro") {
+      body = `Idorari 1 = ${ctx.rates.usdMobileRate.toLocaleString("en-US")} BIF (Lumicash) \u00b7 ${ctx.rates.usdBankRate.toLocaleString("en-US")} BIF (Banki). Reba none!`
+    }
+    return {
+      type: "action",
+      action: { kind: "notify", title: `${content.brandName}`, body },
+    }
+  }
+
+  // ---- Profit margin (percent) ----
+  if (/\b(margin|profit|inyungu|marge)\b/.test(lower)) {
+    const p = firstNumber(lower)
+    if (p === null) return { type: "reply", reply: "Mbwira inyungu ku ijana, nk'\"margin 2%\"." }
+    const percent = Math.max(0, Math.min(100, p))
+    const margin = Math.max(0, Math.min(1, 1 - percent / 100))
+    return { type: "action", action: { kind: "setMargin", margin, percent } }
+  }
+
+  // ---- Bulk adjust all USD rates up/down ----
+  if (/\b(all rates?|vyose)\b/.test(lower) && /rate|igiciro|ibiciro|amafaranga/.test(lower)) {
+    const n = firstNumber(lower)
+    if (n === null) return { type: "reply", reply: "Mbwira urugero, nk'\"ongera ibiciro vyose 100\"." }
+    const down = /\b(decrease|reduce|lower|gabanya|kugabanya|manura|kumanura|down|minus)\b/.test(lower)
+    const delta = down ? -Math.abs(n) : Math.abs(n)
+    return { type: "action", action: { kind: "adjustRates", delta } }
+  }
+
+  // ---- Rename an item in a list ----
+  if (/\b(rename|hindura izina|hindura izina rya|subiza izina)\b/.test(lower) && /\bto\b|\bkuba\b| ni /.test(lower)) {
+    const field: ListField | null = /\bbank|banki\b/.test(lower)
+      ? "burundiBanks"
+      : /mobile|momo/.test(lower)
+        ? "burundiMobile"
+        : /announcement|itangazo|amatangazo/.test(lower)
+          ? "marquee"
+          : null
+    if (field) {
+      const sep = lower.includes(" to ") ? " to " : lower.includes(" kuba ") ? " kuba " : " ni "
+      const idx = lower.indexOf(sep)
+      const to = original.slice(idx + sep.length).trim()
+      // "from" is the list keyword's value up to the separator.
+      const kw = field === "burundiBanks" ? (lower.includes("banki") ? "banki" : "bank") : field === "burundiMobile" ? (lower.includes("mobile") ? "mobile" : "momo") : ["announcement", "itangazo", "amatangazo"].find((k) => lower.includes(k))!
+      const fromRaw = original.slice(lower.indexOf(kw) + kw.length, idx).replace(CONNECTIVE, "").trim()
+      if (fromRaw && to) return { type: "action", action: { kind: "listRename", field, from: fromRaw, to } }
+      return { type: "reply", reply: "Andika nk'\"rename bank KCB to KCB Bank\"." }
+    }
+  }
+
   const hasAdd = ADD_VERB.test(lower)
   const hasRemove = REMOVE_VERB.test(lower)
+
+  // ---- Add / Remove a payment method on a country ----
+  if ((hasAdd || hasRemove) && /\b(method|methods|uburyo|via)\b/.test(lower)) {
+    const c = findCountry(content, lower)
+    if (!c) return { type: "reply", reply: "Mbwira igihugu, nk'\"add method MTN to Uganda\"." }
+    const kw = ["method", "methods", "uburyo", "via"].find((k) => lower.includes(k))!
+    let method = valueAfter(original, lower, kw)
+    // Strip a trailing "to/from/in <country>" (or the bare country name) plus
+    // any leftover trailing preposition.
+    method = method.replace(new RegExp(`\\b(to|from|in|kuri|kuva|muri|kuva muri)\\s+${c.name}\\b.*$`, "i"), "").trim()
+    method = method.replace(new RegExp(`\\b${c.name}\\b.*$`, "i"), "").trim()
+    method = method.replace(/\s*\b(to|from|in|kuri|kuva|muri|na)\b\s*$/i, "").trim()
+    if (!method) return { type: "reply", reply: "Andika izina ry'uburyo, nk'\"add method MTN to Uganda\"." }
+    return {
+      type: "action",
+      action: hasRemove ? { kind: "removeMethod", code: c.code, method } : { kind: "addMethod", code: c.code, method },
+    }
+  }
 
   // ---- Add / Remove on lists, countries, fees ----
   if (hasAdd || hasRemove) {
@@ -346,6 +424,67 @@ export function applyAction(action: Action, rates: RateData, content: SiteConten
         revert: { kind: "addFee", tier: removed },
       }
     }
+    case "listRename": {
+      const current = content[action.field] as string[]
+      const target = action.from.toLowerCase()
+      const found = current.find((x) => x.toLowerCase() === target || x.toLowerCase().includes(target))
+      if (!found) return { summary: `Sinaronse "${action.from}".`, revert: null }
+      const list = current.map((x) => (x === found ? action.to : x))
+      return {
+        content: { ...content, [action.field]: list },
+        summary: `Nahinduye "${found}" → "${action.to}".`,
+        revert: { kind: "listRename", field: action.field, from: action.to, to: found },
+      }
+    }
+    case "setMargin": {
+      const prev = rates.margin
+      const prevPercent = Math.round((1 - prev) * 100)
+      return {
+        rates: { ...rates, margin: action.margin },
+        summary: `Nahinduye inyungu (margin): ${prevPercent}% → ${action.percent}%.`,
+        revert: { kind: "setMargin", margin: prev, percent: prevPercent },
+      }
+    }
+    case "adjustRates": {
+      const newMobile = Math.max(0, rates.usdMobileRate + action.delta)
+      const newBank = Math.max(0, rates.usdBankRate + action.delta)
+      const sign = action.delta >= 0 ? "+" : ""
+      return {
+        rates: { ...rates, usdMobileRate: newMobile, usdBankRate: newBank },
+        summary: `Nahinduye ibiciro vyose (${sign}${action.delta}): Mobile = ${newMobile.toLocaleString("en-US")} BIF, Banki = ${newBank.toLocaleString("en-US")} BIF.`,
+        revert: { kind: "adjustRates", delta: -action.delta },
+      }
+    }
+    case "addMethod": {
+      const idx = content.countries.findIndex((c) => c.code === action.code)
+      if (idx === -1) return { summary: "Sinaronse ico gihugu.", revert: null }
+      const c = content.countries[idx]
+      if (c.methods.some((m) => m.toLowerCase() === action.method.toLowerCase()))
+        return { summary: `"${action.method}" isanzwe iri muri ${c.name}.`, revert: null }
+      const countries = content.countries.map((x, i) => (i === idx ? { ...x, methods: [...x.methods, action.method] } : x))
+      return {
+        content: { ...content, countries },
+        summary: `Nongeyemwo uburyo "${action.method}" muri ${c.name}.`,
+        revert: { kind: "removeMethod", code: action.code, method: action.method },
+      }
+    }
+    case "removeMethod": {
+      const idx = content.countries.findIndex((c) => c.code === action.code)
+      if (idx === -1) return { summary: "Sinaronse ico gihugu.", revert: null }
+      const c = content.countries[idx]
+      const found = c.methods.find((m) => m.toLowerCase() === action.method.toLowerCase() || m.toLowerCase().includes(action.method.toLowerCase()))
+      if (!found) return { summary: `Sinaronse uburyo "${action.method}" muri ${c.name}.`, revert: null }
+      const countries = content.countries.map((x, i) => (i === idx ? { ...x, methods: x.methods.filter((m) => m !== found) } : x))
+      return {
+        content: { ...content, countries },
+        summary: `Nakuyeho uburyo "${found}" muri ${c.name}.`,
+        revert: { kind: "addMethod", code: action.code, method: found },
+      }
+    }
+    case "notify": {
+      // The actual push is sent by the server action; nothing to persist here.
+      return { summary: `Nasabye kurungika itangazo kuri bose: "${action.body}".`, revert: null }
+    }
   }
 }
 
@@ -360,8 +499,13 @@ function helpText(ctx: { rates: RateData; content: SiteContent }): string {
     "• add mobile Ecocash",
     "• add fee 1500 = 6   /   remove fee 900",
     "• add announcement Turakora 24/7",
+    "• add method MTN to Uganda   /   remove method Airtel from Kenya",
+    "• rename bank KCB to KCB Bank",
+    "• ongera ibiciro vyose 100   /   gabanya ibiciro vyose 50",
+    "• margin 2%   →  guhindura inyungu",
+    "• notify Ibiciro bishasha 6030   →  kumenyesha bose kuri telefone",
     "• change tagline to Twohereza amafaranga vuba",
     "• change phone to 0552256963",
-    `Ubu igiciro ni ${ctx.rates.usdMobileRate.toLocaleString("en-US")} BIF (Mobile).`,
+    `Ubu igiciro ni ${ctx.rates.usdMobileRate.toLocaleString("en-US")} BIF (Mobile). Vyose ni ku buntu, ntawurihira.`,
   ].join("\n")
 }

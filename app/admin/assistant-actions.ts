@@ -8,6 +8,7 @@ import { getRateSettings, type RateData } from "@/lib/rates"
 import { getSiteContent } from "@/lib/content"
 import { DEFAULT_CONTENT, type SiteContent } from "@/lib/content-types"
 import { interpret, applyAction, type Action } from "@/lib/ai-command"
+import { sendPushToAllClients } from "@/lib/push"
 
 export type AssistantResponse = {
   ok: boolean
@@ -49,6 +50,21 @@ export async function runAssistantCommand(command: string): Promise<AssistantRes
     const [rates, content] = await Promise.all([getRateSettings(), getSiteContent()])
     const res = interpret(command, { rates, content })
     if (res.type === "reply") return { ok: true, reply: res.reply, changed: false }
+
+    // Push notifications are a side effect (no DB write) handled here.
+    if (res.action.kind === "notify") {
+      const { sent } = await sendPushToAllClients({
+        title: res.action.title,
+        body: res.action.body,
+        url: "/",
+        tag: "admin-broadcast",
+      })
+      return {
+        ok: true,
+        reply: `Narungitse itangazo ku bantu ${sent} bafise notifications: "${res.action.body}".`,
+        changed: false,
+      }
+    }
 
     const applied = applyAction(res.action, rates, content)
     if (!applied.rates && !applied.content) {

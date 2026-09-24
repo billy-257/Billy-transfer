@@ -16,10 +16,15 @@ type Msg = {
 const SUGGESTIONS = [
   "igiciro 6030",
   "igiciro ca banki 5900",
+  "ongera ibiciro vyose 100",
+  "notify Ibiciro bishasha 6030",
   "add country Zambia code ZMW rate 400",
   "Uganda rate 10500",
+  "add method MTN to Uganda",
   "add bank BancABC",
+  "rename bank KCB to KCB Bank",
   "add fee 1500 = 6",
+  "margin 2%",
   "add announcement Turakora 24/7",
   "change tagline to Twohereza amafaranga vuba",
 ]
