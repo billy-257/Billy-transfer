@@ -3,6 +3,7 @@ import { eq, inArray, or } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { friendships, users } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth"
+import { getLastSeenMap, ONLINE_WINDOW_MS } from "@/lib/presence"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -30,7 +31,27 @@ export async function GET() {
   const people = ids.length
     ? await db.select().from(users).where(inArray(users.id, ids))
     : []
-  const map = new Map(people.map((u) => [u.id, { id: u.id, username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl }]))
+
+  const seen = await getLastSeenMap(ids.map((id) => `u${id}`))
+  const now = Date.now()
+  const map = new Map(
+    people.map((u) => {
+      const lastSeen = seen[`u${u.id}`] ?? null
+      const online = lastSeen ? now - new Date(lastSeen).getTime() < ONLINE_WINDOW_MS : false
+      return [
+        u.id,
+        {
+          id: u.id,
+          username: u.username,
+          displayName: u.displayName,
+          avatarUrl: u.avatarUrl,
+          isAdmin: u.isAdmin,
+          lastSeen,
+          online,
+        },
+      ]
+    }),
+  )
 
   const hydrate = (list: { requestId: number; userId: number }[]) =>
     list.map((x) => ({ requestId: x.requestId, user: map.get(x.userId) })).filter((x) => x.user)

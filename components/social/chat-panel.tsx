@@ -3,17 +3,24 @@
 import { useEffect, useRef, useState } from "react"
 import useSWR from "swr"
 import { Send, ArrowLeft, MessageCircle, Trash2 } from "lucide-react"
-import { socialFetcher, type SocialUser } from "@/components/social/types"
+import { socialFetcher, lastSeenLabel, type SocialUser } from "@/components/social/types"
 
 type DM = { id: number; senderId: number; recipientId: number; body: string; createdAt: string }
 
 function Avatar({ user, size = 40 }: { user: SocialUser; size?: number }) {
-  return user.avatarUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={user.avatarUrl || "/placeholder.svg"} alt={user.displayName} className="rounded-full object-cover" style={{ width: size, height: size }} />
-  ) : (
-    <div className="flex items-center justify-center rounded-full bg-emerald-500/20 font-black text-emerald-400" style={{ width: size, height: size }}>
-      {user.displayName.charAt(0).toUpperCase()}
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      {user.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={user.avatarUrl || "/placeholder.svg"} alt={user.displayName} className="h-full w-full rounded-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-emerald-500/20 font-black text-emerald-400">
+          {user.displayName.charAt(0).toUpperCase()}
+        </div>
+      )}
+      {user.online ? (
+        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-400" />
+      ) : null}
     </div>
   )
 }
@@ -43,7 +50,9 @@ export function ChatPanel({
             <Avatar user={f.user} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-white">{f.user.displayName}</p>
-              <p className="truncate text-xs text-slate-500">@{f.user.username}</p>
+              <p className={`truncate text-xs ${f.user.online ? "text-emerald-400" : "text-slate-500"}`}>
+                {f.user.online ? "Ari kumurongo" : lastSeenLabel(f.user.lastSeen)}
+              </p>
             </div>
             <MessageCircle className="h-4 w-4 text-emerald-400" />
           </button>
@@ -61,6 +70,8 @@ function Thread({ peer, onBack, isAdmin }: { peer: SocialUser; onBack: () => voi
   const [text, setText] = useState("")
   const messages: DM[] = data?.messages ?? []
   const meId: number | null = data?.me ?? null
+  const peerOnline: boolean = data?.peerOnline ?? false
+  const peerLastSeen: string | null = data?.peerLastSeen ?? null
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -84,10 +95,12 @@ function Thread({ peer, onBack, isAdmin }: { peer: SocialUser; onBack: () => voi
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b border-slate-800 bg-slate-950/80 px-4 py-3 backdrop-blur">
         <button onClick={onBack} className="rounded-full p-1.5 text-slate-300 hover:bg-slate-800"><ArrowLeft className="h-5 w-5" /></button>
-        <Avatar user={peer} size={36} />
+        <Avatar user={{ ...peer, online: peerOnline }} size={36} />
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-white">{peer.displayName}</p>
-          <p className="truncate text-xs text-slate-500">@{peer.username}</p>
+          <p className={`truncate text-xs ${peerOnline ? "text-emerald-400" : "text-slate-500"}`}>
+            {peerOnline ? "Ari kumurongo" : lastSeenLabel(peerLastSeen)}
+          </p>
         </div>
       </div>
 

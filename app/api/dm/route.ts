@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { directMessages } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth"
 import { notifyUser } from "@/lib/social"
+import { getLastSeenMap, ONLINE_WINDOW_MS } from "@/lib/presence"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -35,7 +36,11 @@ export async function GET(req: Request) {
     .where(and(eq(directMessages.senderId, withId), eq(directMessages.recipientId, me.id), isNull(directMessages.readAt)))
     .catch(() => {})
 
-  return NextResponse.json({ ok: true, me: me.id, messages: rows })
+  const seen = await getLastSeenMap([`u${withId}`])
+  const peerLastSeen = seen[`u${withId}`] ?? null
+  const peerOnline = peerLastSeen ? Date.now() - new Date(peerLastSeen).getTime() < ONLINE_WINDOW_MS : false
+
+  return NextResponse.json({ ok: true, me: me.id, messages: rows, peerLastSeen, peerOnline })
 }
 
 // POST { toUserId, body }
