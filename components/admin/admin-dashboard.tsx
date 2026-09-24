@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, DollarSign, LayoutList, Users, MessageSquare, Bell, Sparkles, Contact, Megaphone, MonitorSmartphone, Images, UserCheck } from "lucide-react"
+import { LogOut, DollarSign, LayoutList, Users, MessageSquare, Bell, Sparkles, Contact, Megaphone, MonitorSmartphone, Images, UserCheck, Bot } from "lucide-react"
 import { logout } from "@/app/admin/actions"
 import { RateEditor } from "@/components/admin/rate-editor"
 import { ContentEditor } from "@/components/admin/content-editor"
 import { VisitorsRoom } from "@/components/admin/visitors-room"
 import { InboxRoom } from "@/components/admin/inbox-room"
 import { AiIdeasRoom } from "@/components/admin/ai-ideas-room"
+import { AiAssistantRoom } from "@/components/admin/ai-assistant-room"
 import { MembersRoom } from "@/components/admin/members-room"
 import { RegisteredUsersRoom } from "@/components/admin/registered-users-room"
 import { AnnounceRoom } from "@/components/admin/announce-room"
@@ -17,7 +18,7 @@ import { enablePush } from "@/lib/push-client"
 import type { SiteContent } from "@/lib/content-types"
 import type { VisitStats } from "@/lib/admin-data"
 
-type Tab = "rates" | "content" | "visitors" | "inbox" | "ai" | "members" | "announce" | "popup" | "showcase" | "registered"
+type Tab = "rates" | "content" | "visitors" | "inbox" | "ai" | "assistant" | "members" | "announce" | "popup" | "showcase" | "registered"
 
 type Props = {
   usdMobileRate: number
@@ -28,7 +29,7 @@ type Props = {
 }
 
 export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, content, visitStats }: Props) {
-  const [tab, setTab] = useState<Tab>("inbox")
+  const [tab, setTab] = useState<Tab>("assistant")
   const [pushMsg, setPushMsg] = useState("")
 
   const tabBtn = (id: Tab, active: boolean) =>
@@ -67,7 +68,10 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
         </p>
       ) : null}
 
-      <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900 p-1 sm:grid-cols-4 lg:grid-cols-10">
+      <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900 p-1 sm:grid-cols-4 lg:grid-cols-11">
+        <button onClick={() => setTab("assistant")} className={tabBtn("assistant", tab === "assistant")}>
+          <Bot className="h-4 w-4" /> Umufasha AI
+        </button>
         <button onClick={() => setTab("inbox")} className={tabBtn("inbox", tab === "inbox")}>
           <MessageSquare className="h-4 w-4" /> Ubutumwa
         </button>
@@ -87,7 +91,7 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
           <Contact className="h-4 w-4" /> Abanywanyi
         </button>
         <button onClick={() => setTab("ai")} className={tabBtn("ai", tab === "ai")}>
-          <Sparkles className="h-4 w-4" /> AI / Ivyongerwa
+          <Sparkles className="h-4 w-4" /> AI (kode)
         </button>
         <button onClick={() => setTab("rates")} className={tabBtn("rates", tab === "rates")}>
           <DollarSign className="h-4 w-4" /> Ibiciro
@@ -100,7 +104,9 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
         </button>
       </div>
 
-      {tab === "inbox" ? (
+      {tab === "assistant" ? (
+        <AiAssistantRoom />
+      ) : tab === "inbox" ? (
         <InboxRoom />
       ) : tab === "registered" ? (
         <RegisteredUsersRoom />
