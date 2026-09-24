@@ -1,117 +1,28 @@
 import { NextResponse } from "next/server"
+import { getRateSettings } from "@/lib/rates"
 
 export const dynamic = "force-dynamic"
 
-// Displayed USD→BIF rate must stay within this band, never above the max.
-const RATE_MIN = 6030
-const RATE_MAX = 6030
-
-function clampRate(value: number) {
-  return Math.min(RATE_MAX, Math.max(RATE_MIN, value))
-}
-
-interface BinanceAd {
-  adv?: {
-    price?: string
-  }
-}
-
-interface BinanceP2PResponse {
-  data?: BinanceAd[]
-}
-
+/*
+ * The displayed USD→BIF rate is controlled 100% from the admin panel and stored
+ * in the database. It is NOT hardcoded here and is NOT pulled from any external
+ * market, so it can only be changed from the app (Admin → Ibiciro), never by
+ * editing code / GitHub.
+ */
 export async function GET() {
   try {
-    const response = await fetch(
-      "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          page: 1,
-          rows: 10,
-          payTypes: [],
-          asset: "USDT",
-          tradeType: "BUY",
-          fiat: "BIF",
-          publisherType: null,
-        }),
-
-        cache: "no-store",
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error(
-        "P2P request failed"
-      )
-    }
-
-    const result =
-      (await response.json()) as BinanceP2PResponse
-
-    const prices =
-      (result.data || [])
-        .map((item) =>
-          Number(
-            item.adv?.price
-          )
-        )
-        .filter(
-          (price) =>
-            Number.isFinite(price) &&
-            price > 0
-        )
-
-    if (!prices.length) {
-      return NextResponse.json({
-        rate: 5900,
-        live: true,
-        source: "fallback",
-      })
-    }
-
-    /*
-     * Use the first five valid offers.
-     * This prevents one unusual offer from
-     * completely determining the displayed rate.
-     */
-
-    const selected =
-      prices
-        .sort((a, b) => a - b)
-        .slice(
-          0,
-          Math.min(
-            5,
-            prices.length
-          )
-        )
-
-    const average =
-      selected.reduce(
-        (total, price) =>
-          total + price,
-        0
-      ) / selected.length
-
+    const { usdMobileRate } = await getRateSettings()
     return NextResponse.json({
-      rate: clampRate(
-        Math.round(average)
-      ),
+      rate: usdMobileRate,
       live: true,
-      source: "Binance P2P",
-      updatedAt:
-        new Date().toISOString(),
+      source: "admin",
+      updatedAt: new Date().toISOString(),
     })
   } catch {
+    // If the database is briefly unreachable, fall back to the built-in default.
     return NextResponse.json({
-      rate: 5900,
-      live: true,
+      rate: 5980,
+      live: false,
       source: "fallback",
     })
   }
