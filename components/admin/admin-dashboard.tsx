@@ -1,13 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, DollarSign, LayoutList, Users, MessageSquare, Bell, Sparkles, Contact, Megaphone, MonitorSmartphone, Images, UserCheck, Bot } from "lucide-react"
+import { LogOut, DollarSign, LayoutList, Users, MessageSquare, Bell, Contact, Megaphone, MonitorSmartphone, Images, UserCheck, Bot } from "lucide-react"
 import { logout } from "@/app/admin/actions"
 import { RateEditor } from "@/components/admin/rate-editor"
 import { ContentEditor } from "@/components/admin/content-editor"
 import { VisitorsRoom } from "@/components/admin/visitors-room"
 import { InboxRoom } from "@/components/admin/inbox-room"
-import { AiIdeasRoom } from "@/components/admin/ai-ideas-room"
 import { AiAssistantRoom } from "@/components/admin/ai-assistant-room"
 import { MembersRoom } from "@/components/admin/members-room"
 import { RegisteredUsersRoom } from "@/components/admin/registered-users-room"
@@ -18,7 +17,7 @@ import { enablePush } from "@/lib/push-client"
 import type { SiteContent } from "@/lib/content-types"
 import type { VisitStats } from "@/lib/admin-data"
 
-type Tab = "rates" | "content" | "visitors" | "inbox" | "ai" | "assistant" | "members" | "announce" | "popup" | "showcase" | "registered"
+type Tab = "rates" | "content" | "visitors" | "inbox" | "assistant" | "members" | "announce" | "popup" | "showcase" | "registered"
 
 type Props = {
   usdMobileRate: number
@@ -68,7 +67,7 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
         </p>
       ) : null}
 
-      <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900 p-1 sm:grid-cols-4 lg:grid-cols-11">
+      <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-slate-900 p-1 sm:grid-cols-4 lg:grid-cols-10">
         <button onClick={() => setTab("assistant")} className={tabBtn("assistant", tab === "assistant")}>
           <Bot className="h-4 w-4" /> Umufasha AI
         </button>
@@ -89,9 +88,6 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
         </button>
         <button onClick={() => setTab("members")} className={tabBtn("members", tab === "members")}>
           <Contact className="h-4 w-4" /> Abanywanyi
-        </button>
-        <button onClick={() => setTab("ai")} className={tabBtn("ai", tab === "ai")}>
-          <Sparkles className="h-4 w-4" /> AI (kode)
         </button>
         <button onClick={() => setTab("rates")} className={tabBtn("rates", tab === "rates")}>
           <DollarSign className="h-4 w-4" /> Ibiciro
@@ -118,8 +114,6 @@ export function AdminDashboard({ usdMobileRate, usdBankRate, marginPercent, cont
         <ShowcaseManager />
       ) : tab === "members" ? (
         <MembersRoom />
-      ) : tab === "ai" ? (
-        <AiIdeasRoom />
       ) : tab === "rates" ? (
         <RateEditor usdMobileRate={usdMobileRate} usdBankRate={usdBankRate} marginPercent={marginPercent} />
       ) : tab === "content" ? (
