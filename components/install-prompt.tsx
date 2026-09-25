@@ -79,14 +79,14 @@ export function InstallPrompt() {
             className="h-11 w-11 flex-shrink-0 rounded-xl"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-white">Shira app kuri telefone</p>
+            <p className="truncate text-sm font-bold text-white">Installer app kuri telefone</p>
             <p className="truncate text-xs text-slate-400">Yifungura ningoga nk&apos;app nyayo.</p>
           </div>
           <button
             onClick={handleInstall}
             className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-400"
           >
-            <Download className="h-4 w-4" /> Shira
+            <Download className="h-4 w-4" /> Installer
           </button>
           <button
             onClick={() => setVisible(false)}
