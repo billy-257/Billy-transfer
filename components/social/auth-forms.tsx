@@ -79,6 +79,10 @@ export function AuthForms({ onAuthed }: { onAuthed: (u: SocialUser) => void }) {
           Inomero ya telefone
         </label>
 
+        <p className="text-center text-xs text-emerald-300">
+          Andika inomero ya telefone ifitanye isano na WhatsApp yawe.
+        </p>
+
         <div className="flex gap-2">
           <select
             aria-label="Igihugu (country code)"

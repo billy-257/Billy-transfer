@@ -29,9 +29,10 @@ export async function createSession() {
   store.set(COOKIE, value, {
     httpOnly: true,
     secure: true,
-    // "none" is required so the session cookie is stored/sent inside the
-    // v0 preview iframe (cross-site context). Works over HTTPS in prod too.
-    sameSite: "none",
+    // "lax" (first-party) so the admin cookie is reliably sent on the deployed
+    // site. Mobile browsers and installed PWAs drop "none" cookies as
+    // third-party, which made every admin save/delete fail with 401.
+    sameSite: "lax",
     path: "/",
     maxAge: MAX_AGE,
   })
