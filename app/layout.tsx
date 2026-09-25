@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import { VisitTracker } from "@/components/visit-tracker"
 import { SplashScreen } from "@/components/splash-screen"
+import { InstallPrompt } from "@/components/install-prompt"
 import "./globals.css"
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <SplashScreen />
         {children}
+        <InstallPrompt />
         <VisitTracker />
         <ServiceWorkerRegister />
       </body>
