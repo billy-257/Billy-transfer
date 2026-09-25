@@ -142,9 +142,6 @@ export function HomePageClient({
   const [p2pUpdated, setP2pUpdated] =
     useState<Date | null>(null)
 
-  const [rateDirection, setRateDirection] =
-    useState<"up" | "down" | "same">("same")
-
   useEffect(() => {
     let cancelled = false
 
@@ -169,18 +166,7 @@ export function HomePageClient({
           typeof data.rate === "number" &&
           data.rate > 0
         ) {
-          setP2pRate((previous) => {
-            if (data.rate > previous) {
-              setRateDirection("up")
-            } else if (data.rate < previous) {
-              setRateDirection("down")
-            } else {
-              setRateDirection("same")
-            }
-
-            return data.rate
-          })
-
+          setP2pRate(data.rate)
           setP2pUpdated(new Date())
         }
       } catch {
@@ -682,10 +668,6 @@ export function HomePageClient({
                   ? "text-sky-400"
                   : transferType === "coopec"
                   ? "text-amber-400"
-                  : rateDirection === "up"
-                  ? "text-emerald-300"
-                  : rateDirection === "down"
-                  ? "text-red-300"
                   : "text-emerald-400"
               }`}
             >
