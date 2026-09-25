@@ -40,7 +40,7 @@ export async function createUserSession(userId: number) {
   store.set(COOKIE, value, {
     httpOnly: true,
     secure: true,
-    sameSite: "none",
+    sameSite: "lax",
     path: "/",
     maxAge: MAX_AGE,
   })
