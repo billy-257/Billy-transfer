@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { createUserSession } from "@/lib/auth"
+import { isOwnerPhone } from "@/lib/owner"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -19,13 +20,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Andika inomero ya telefone nyayo." }, { status: 400 })
     }
 
+    const owner = isOwnerPhone(p)
+
     let row = (await db.select().from(users).where(eq(users.phone, p)).limit(1))[0]
 
     if (!row) {
       try {
         ;[row] = await db
           .insert(users)
-          .values({ username: `user_${digits}`, phone: p, displayName: p, passwordHash: "" })
+          .values({ username: `user_${digits}`, phone: p, displayName: p, passwordHash: "", isAdmin: owner })
           .returning()
       } catch {
         // Unique-constraint race: someone/something created it — re-read.
@@ -35,6 +38,12 @@ export async function POST(req: Request) {
 
     if (!row) {
       return NextResponse.json({ ok: false, error: "Ntibishoboye. Gerageza kandi." }, { status: 500 })
+    }
+
+    // Keep the owner's admin flag in sync (and make sure nobody else is admin).
+    if (row.isAdmin !== owner) {
+      await db.update(users).set({ isAdmin: owner }).where(eq(users.id, row.id))
+      row.isAdmin = owner
     }
 
     await createUserSession(row.id)
