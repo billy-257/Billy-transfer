@@ -19,7 +19,6 @@ import { MemberSignup } from "@/components/member-signup"
 import { NotifyOptin } from "@/components/notify-optin"
 import { AppPopup } from "@/components/app-popup"
 import { FeatureShowcase } from "@/components/feature-showcase"
-import { SocialHub } from "@/components/social/social-hub"
 
 interface Country {
   name: string
@@ -565,8 +564,6 @@ export function HomePageClient({
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <SocialHub />
-
           <HeaderMessagesButton />
 
           <button
