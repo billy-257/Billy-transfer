@@ -132,66 +132,11 @@ export function HomePageClient({
    * =========================================================
    */
 
-  const [p2pRate, setP2pRate] =
-    useState<number>(fallbackP2PRate)
-
-  const [p2pLoading, setP2pLoading] =
-    useState(true)
-
-  const [p2pUpdated, setP2pUpdated] =
-    useState<Date | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function fetchP2PRate() {
-      try {
-        const response = await fetch(
-          "/api/p2p-rate",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error("P2P rate request failed")
-        }
-
-        const data = await response.json()
-
-        if (
-          !cancelled &&
-          typeof data.rate === "number" &&
-          data.rate > 0
-        ) {
-          setP2pRate(data.rate)
-          setP2pUpdated(new Date())
-        }
-      } catch {
-        if (!cancelled) {
-          setP2pRate(fallbackP2PRate)
-        }
-      } finally {
-        if (!cancelled) {
-          setP2pLoading(false)
-        }
-      }
-    }
-
-    fetchP2PRate()
-
-    // Update the displayed P2P rate every minute.
-    const interval = window.setInterval(
-      fetchP2PRate,
-      60_000
-    )
-
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-    }
-  }, [fallbackP2PRate])
+  // The rate shown is ALWAYS the admin-set value rendered by the server
+  // (this page is force-dynamic, so every load reads the current DB value).
+  // No client-side fetch, no cache, no drift: what the admin saves is exactly
+  // what every visitor sees on their next load.
+  const p2pRate = fallbackP2PRate
 
   /*
    * =========================================================
@@ -691,17 +636,7 @@ export function HomePageClient({
                   </span>
 
                   <span className="text-slate-500">
-                    {p2pLoading
-                      ? "Updating..."
-                      : p2pUpdated
-                      ? `Updated ${p2pUpdated.toLocaleTimeString(
-                          [],
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}`
-                      : "Live rate"}
+                    Live rate
                   </span>
                 </>
               ) : transferType === "coopec" ? (
