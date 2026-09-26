@@ -10,7 +10,6 @@ import {
   Building2,
   Landmark,
   ShieldCheck,
-  Settings,
   Users,
 } from "lucide-react"
 import { ClientChat } from "@/components/client-chat"
@@ -556,15 +555,7 @@ export function HomePageClient({
 
             </div>
 
-            <a
-              href="/admin"
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-emerald-400 hover:bg-emerald-500/20 transition flex-shrink-0"
-            >
-              <Settings className="w-3.5 h-3.5" aria-hidden />
-              App settings
-            </a>
+
 
           </div>
 
@@ -625,9 +616,17 @@ export function HomePageClient({
             <p className="mt-3 text-slate-400 font-bold">
               Idorari 1 ={" "}
               <span className="text-white">
-                {USD_TO_AED.toFixed(2)} AED
-              </span>
-            </p>
+  {USD_TO_AED.toFixed(2)} AED
+  </span>
+  </p>
+  
+  <p className="mt-2 text-slate-400 font-bold">
+  1 AED ={" "}
+  <span className="text-emerald-400 tabular-nums">
+  {Math.round(bifPerAed).toLocaleString()} BIF
+  </span>
+  </p>
+
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs">
 
